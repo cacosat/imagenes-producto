@@ -41,6 +41,6 @@ peso_max_kb = 50              # 0 = sin límite
 nombre = "{producto}-Version-Final-{vista}"   # nombre de cada imagen final, sin extensión
 
 [alertas]
-ampliacion_max = 1.0          # si el producto se amplía más que este factor, se alerta (puede verse borroso)
+ampliacion_max = 1.10         # si el producto se amplía más que este factor, se alerta (hasta 10 % no se nota)
 margen_borde = 2              # px: si el producto queda a esta distancia o menos del borde de la imagen de entrada, se alerta
 diferencia_proporcion = 0.03  # diferencia máxima de proporción ancho/alto entre la frontal y la trasera (deberían ser iguales)

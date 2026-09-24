@@ -88,7 +88,7 @@ class Salida:
 
 @dataclass(frozen=True)
 class Alertas:
-    ampliacion_max: float = 1.0
+    ampliacion_max: float = 1.10
     margen_borde: int = 2
     diferencia_proporcion: float = 0.03
 

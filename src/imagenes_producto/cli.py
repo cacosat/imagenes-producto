@@ -16,6 +16,12 @@ CONFIG_DEFAULT = Path("config.toml")
 
 
 def main(argv: list[str] | None = None) -> int:
+    # En Windows, con la salida redirigida a un archivo, la codificación de la consola no tiene ✓ ⚠ ✗:
+    # sin esto, imprimirlos botaría el programa.
+    for flujo in (sys.stdout, sys.stderr):
+        if hasattr(flujo, "reconfigure"):
+            flujo.reconfigure(errors="replace")
+
     comun = argparse.ArgumentParser(add_help=False)
     comun.add_argument("-c", "--config", type=Path, help="archivo de configuración (default: config.toml, si existe)")
 

@@ -17,13 +17,25 @@ Cada producto lleva 4 imágenes, en este orden: **Portada, Lateral, Frontal y Tr
 
 ## Instalación
 
-Requiere Python 3.11 o superior.
+Requiere Python 3.11 o superior. Funciona en macOS, Windows y Linux; solo cambia cómo se crea y se activa el entorno.
+
+macOS / Linux:
 
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 ```
+
+Windows (PowerShell), con Python instalado desde python.org o con `winget install Python.Python.3.12`:
+
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+```
+
+Si PowerShell no deja ejecutar el script de activación, corre antes `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Con el entorno activo, el comando `imgprod` y `pytest` funcionan igual en los tres sistemas.
 
 ## Uso
 
