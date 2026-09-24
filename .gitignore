@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# Secretos (API keys)
+.env
+
+# macOS
+.DS_Store
+
+# Resultados del pipeline
+salida/
+
+# Material de ejemplo: pesa y puede incluir imágenes de terceros. Se comparte fuera del repo.
+muestras/**
+!muestras/README.md

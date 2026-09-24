@@ -1,0 +1,46 @@
+# Configuración del pipeline de imágenes de producto.
+# Estos valores son los defaults (src/imagenes_producto/config.py): cambia solo lo que necesites.
+# El formato de salida sigue el prompt actual: 1000×1000, WEBP de hasta 50 KB, fondo blanco.
+
+[lienzo]
+ancho = 1000                  # px
+alto = 1000                   # px
+fondo = "#FFFFFF"             # color hex, o "transparente" (solo con png o webp)
+
+[producto]
+altura = 0.90                 # fracción del alto del lienzo que ocupa el producto (900 px de 1000); la misma en todas las vistas y modelos
+ancho_max = 0.90              # fracción máxima del ancho; si el producto no cabe, se achica y se alerta
+
+[portada]
+visible_trasera = 0.8333      # de la trasera (atrás, a la izquierda) se ve esta fracción del ancho de la frontal: 5/6
+
+[sombra]                      # sombra de contacto bajo el producto; medidas en fracción del alto del producto
+activa = true                 # ajustada a las referencias de estilo (estilo/referencias/)
+opacidad = 0.24               # 0-1: oscuridad máxima
+base = 0.024                  # alto de la silueta aplastada de la que sale la sombra
+desplazamiento = 0.004        # cuánto baja la sombra respecto del borde inferior del producto
+desenfoque_x = 0.029          # difuminado horizontal
+desenfoque_y = 0.018          # difuminado vertical
+
+[recorte]
+umbral_alfa = 128             # 1-255: opacidad desde la que un píxel cuenta como producto al medir el contorno
+objeto_min = 0.005            # se borran las manchas más chicas que esta fracción del objeto principal
+rellenar_interior = true      # el cuerpo del producto queda 100 % opaco; solo el contorno conserva la transparencia suave
+
+[quitar_fondo]
+metodo = "auto"               # "auto": usa la transparencia si la imagen la trae; si no, rembg
+                              # "alfa": exige transparencia · "rembg": siempre segmenta con rembg
+modelo = "birefnet-general"   # modelo de rembg (MIT). "birefnet-general-lite" es más liviano. No usar bria-rmbg: no es de uso comercial
+limpiar_bordes = true         # quita el color del fondo que queda pegado en los bordes suaves del recorte
+
+[salida]
+formato = "webp"              # "webp", "jpg" o "png"
+calidad = 90                  # calidad máxima (jpg y webp), 1-100
+calidad_min = 60              # para cumplir el peso máximo se baja la calidad hasta acá; si aun así pesa más, se alerta
+peso_max_kb = 50              # 0 = sin límite
+nombre = "{producto}-Version-Final-{vista}"   # nombre de cada imagen final, sin extensión
+
+[alertas]
+ampliacion_max = 1.0          # si el producto se amplía más que este factor, se alerta (puede verse borroso)
+margen_borde = 2              # px: si el producto queda a esta distancia o menos del borde de la imagen de entrada, se alerta
+diferencia_proporcion = 0.03  # diferencia máxima de proporción ancho/alto entre la frontal y la trasera (deberían ser iguales)
