@@ -1,0 +1,12 @@
+# Rasgos clave por modelo. Se agregan al prompt para que la IA no los invente, sobre todo en la
+# vista Lateral, que no aparece en las fotos originales. Un modelo sin entrada se genera sin esta sección.
+# Completar y validar con la ficha técnica oficial del fabricante: lo que se escriba acá la IA lo toma como cierto.
+# El nombre del modelo debe ser igual al del archivo original, sin el color ("iPhone 15 Pro Azul.webp" → "iPhone 15 Pro").
+#
+# Ejemplo:
+# ["iPhone 15 Pro"]
+# rasgos = [
+#     "Botón de Acción en el lado izquierdo, sobre los botones de volumen",
+#     "Marco de titanio con bordes planos",
+#     "Puerto USB-C",
+# ]

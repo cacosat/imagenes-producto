@@ -6,6 +6,7 @@ Las secciones y claves del TOML se llaman igual que las clases y campos de este 
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field, fields
 from pathlib import Path
@@ -17,6 +18,11 @@ FORMATOS = ("png", "jpg", "webp")
 METODOS_FONDO = ("auto", "alfa", "rembg")
 # Vistas de la galería, en el orden en que se muestran. La Portada se compone con la Trasera y la Frontal.
 VISTAS = ("portada", "lateral", "frontal", "trasera")
+# Vistas que genera la IA: la Portada nunca, porque se compone.
+VISTAS_GENERADAS = ("Lateral", "Frontal", "Trasera")
+CALIDADES_IA = ("low", "medium", "high", "xhigh", "max", "auto")
+FONDOS_IA = ("transparente", "blanco")
+PROVEEDORES = ("openai",)
 
 
 class ErrorConfig(ValueError):
@@ -94,6 +100,26 @@ class Alertas:
 
 
 @dataclass(frozen=True)
+class Generar:
+    """Etapa 1. Precios en US$ por millón de tokens (OpenAI, gpt-image-2.5, al 2026-09-24)."""
+
+    proveedor: str = "openai"
+    modelo: str = "gpt-image-2.5-sunburst"
+    calidad: str = "high"
+    medidas: str = "1024x1536"
+    candidatos: int = 1
+    fondo: str = "transparente"
+    vistas: tuple[str, ...] = VISTAS_GENERADAS
+    prompts: str = "estilo/prompts"
+    referencias: str = "estilo/referencias"
+    rasgos: str = "estilo/rasgos.toml"
+    original_min: int = 800
+    precio_texto_entrada: float = 5.0
+    precio_imagen_entrada: float = 8.0
+    precio_imagen_salida: float = 30.0
+
+
+@dataclass(frozen=True)
 class Config:
     lienzo: Lienzo = field(default_factory=Lienzo)
     producto: Producto = field(default_factory=Producto)
@@ -103,6 +129,7 @@ class Config:
     quitar_fondo: QuitarFondo = field(default_factory=QuitarFondo)
     salida: Salida = field(default_factory=Salida)
     alertas: Alertas = field(default_factory=Alertas)
+    generar: Generar = field(default_factory=Generar)
 
     def __post_init__(self) -> None:
         _validar(self)
@@ -130,7 +157,8 @@ def cargar_config(ruta: Path | None) -> Config:
                 f"{ruta}: [{nombre}] no tiene la opción {', '.join(sorted(extra))} "
                 f"(opciones: {', '.join(sorted(validas))})"
             )
-        valores[nombre] = clase(**opciones)
+        # Las listas del TOML pasan a tuplas: la configuración es inmutable.
+        valores[nombre] = clase(**{k: tuple(v) if isinstance(v, list) else v for k, v in opciones.items()})
     return Config(**valores)
 
 
@@ -187,6 +215,23 @@ def _validar(c: Config) -> None:
     exigir(entero(c.alertas.margen_borde, 0), "alertas.margen_borde debe ser un entero mayor o igual a 0")
     exigir(numero(c.alertas.diferencia_proporcion) and c.alertas.diferencia_proporcion >= 0,
            "alertas.diferencia_proporcion debe ser un número mayor o igual a 0")
+
+    g = c.generar
+    exigir(g.proveedor in PROVEEDORES, f"generar.proveedor debe ser uno de: {', '.join(PROVEEDORES)}")
+    exigir(isinstance(g.modelo, str) and g.modelo != "", "generar.modelo debe ser el nombre de un modelo")
+    exigir(g.calidad in CALIDADES_IA, f"generar.calidad debe ser una de: {', '.join(CALIDADES_IA)}")
+    exigir(isinstance(g.medidas, str) and (g.medidas == "auto" or re.fullmatch(r"\d+x\d+", g.medidas) is not None),
+           'generar.medidas debe ser "auto" o ANCHOxALTO, p. ej. "1024x1536"')
+    exigir(entero(g.candidatos, 1, 10), "generar.candidatos debe ser un entero entre 1 y 10")
+    exigir(g.fondo in FONDOS_IA, f"generar.fondo debe ser uno de: {', '.join(FONDOS_IA)}")
+    exigir(isinstance(g.vistas, tuple) and len(g.vistas) > 0 and all(v in VISTAS_GENERADAS for v in g.vistas),
+           f"generar.vistas debe ser una lista con algunas de: {', '.join(VISTAS_GENERADAS)} "
+           "(la Portada no se genera: se compone)")
+    exigir(all(isinstance(r, str) and r != "" for r in (g.prompts, g.referencias, g.rasgos)),
+           "generar.prompts, generar.referencias y generar.rasgos deben ser rutas")
+    exigir(entero(g.original_min, 0), "generar.original_min debe ser un entero mayor o igual a 0")
+    exigir(all(numero(p) and p >= 0 for p in (g.precio_texto_entrada, g.precio_imagen_entrada, g.precio_imagen_salida)),
+           "los precios de generar deben ser números mayores o iguales a 0")
 
 
 def _es_color(valor) -> bool:

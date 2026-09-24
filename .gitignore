@@ -11,6 +11,7 @@ __pycache__/
 .DS_Store
 
 # Resultados del pipeline
+generadas/
 salida/
 
 # Material de ejemplo: pesa y puede incluir imágenes de terceros. Se comparte fuera del repo.

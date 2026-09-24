@@ -8,7 +8,7 @@ Regla de diseño: **la IA solo crea las vistas; la geometría la hace un script.
 
 | # | Etapa | Qué hace | Estado |
 |---|---|---|---|
-| 1 | Generar | IA vía API (OpenAI o Gemini, por decidir tras compararlos): una llamada por vista (Lateral, Frontal, Trasera), con prompt fijo y siempre la misma referencia de estilo. | Pendiente |
+| 1 | Generar | IA vía API: una llamada por vista (Lateral, Frontal, Trasera), con prompt fijo y siempre la misma referencia de estilo. | Implementada con OpenAI; falta probarla con la API real y compararla con Gemini |
 | 2 | Estandarizar | Script determinista: quita el fondo, guarda un recorte maestro transparente, escala el teléfono a una altura fija, lo centra en un lienzo fijo y compone la Portada. Alerta ante problemas de recorte, tamaño o peso. | Implementada; validada solo con imágenes sintéticas |
 | 3 | Revisar | Control de fidelidad contra el original antes de publicar. | Por definir |
 | 4 | Publicar | Subida a las tiendas Shopify. | Por definir |
@@ -50,6 +50,25 @@ La etapa 1 (generar) usa APIs de pago. Copia `.env.example` como `.env` y comple
 - `GEMINI_API_KEY`: opcional, para comparar con Gemini (Google AI Studio).
 
 ## Uso
+
+Los comandos se corren desde la carpeta del proyecto, con el entorno activo.
+
+### Generar
+
+```bash
+imgprod generar "muestras/originales/iPhone 12 Azul.webp"
+```
+
+- El nombre del original da el modelo y el color: `<Modelo> <Color>.<ext>`. El color es la última palabra.
+- Por cada vista (Lateral, Frontal, Trasera) hace una llamada a la API. Cada llamada envía tres cosas:
+  - el original, recortado a su contenido para que la IA vea el equipo con el mayor detalle posible;
+  - la referencia de estilo de esa vista;
+  - el prompt de `estilo/prompts/`.
+- Pide el teléfono con fondo transparente y sin sombra: la sombra y la geometría las pone la etapa 2.
+- **Antes de gastar muestra el costo estimado y pide confirmación.** Con `--si` no la pide.
+- Guarda lo generado en `generadas/<producto>/<Vista>.png`. Cada imagen va con un `.json` que registra modelo, prompt, tokens, costo real y tiempo.
+- Luego lo estandariza en `salida/`, igual que `imgprod estandarizar`. Con `--solo-generar` se detiene antes.
+- Modelo, calidad, medidas y cantidad de candidatas se ajustan en la sección `[generar]` de `config.toml`.
 
 ### Estandarizar
 
@@ -110,6 +129,7 @@ Alertas (no detienen el proceso: quedan en pantalla y en `reporte.json`):
 | `LIMITADO_POR_ANCHO` | El producto es tan ancho que no cabe a la altura estándar y quedó más bajo. |
 | `DESBORDA_LIENZO` | Parte del recorte (halo o sombra) quedó fuera del lienzo. |
 | `PESO_EXCEDIDO` | Ni con la calidad mínima se llega al peso máximo. |
+| `ORIGINAL_CHICO` | Al generar: en el original el equipo ocupa pocos píxeles, así que la IA tiene poco detalle para ser fiel. |
 
 ## Configuración
 

@@ -40,6 +40,22 @@ calidad_min = 60              # para cumplir el peso máximo se baja la calidad 
 peso_max_kb = 50              # 0 = sin límite
 nombre = "{producto}-Version-Final-{vista}"   # nombre de cada imagen final, sin extensión
 
+[generar]                     # etapa 1: generar las vistas con IA
+proveedor = "openai"
+modelo = "gpt-image-2.5-sunburst"   # el más fiel de OpenAI (sept. 2026); "gpt-image-2.5-flare" es la variante rápida, mismo precio
+calidad = "high"              # "low", "medium", "high", "xhigh", "max" o "auto": más calidad, más costo
+medidas = "1024x1536"         # px de la imagen generada; sobra para el lienzo final de 1000×1000
+candidatos = 1                # imágenes por vista y llamada (1-10); las extra quedan como <Vista>-2.png, …
+fondo = "transparente"        # "transparente" (la etapa 2 no necesita quitar el fondo) o "blanco"
+vistas = ["Lateral", "Frontal", "Trasera"]   # la Portada no se genera: se compone
+prompts = "estilo/prompts"    # comun.md + un archivo por vista
+referencias = "estilo/referencias"   # una imagen de estilo por vista (*-Lateral, *-Frontal, *-Trasera)
+rasgos = "estilo/rasgos.toml" # rasgos clave por modelo (opcional)
+original_min = 800            # px: si en el original el equipo ocupa menos que esto (lado mayor), se alerta
+precio_texto_entrada = 5.0    # US$ por millón de tokens (OpenAI, gpt-image-2.5, al 2026-09-24)
+precio_imagen_entrada = 8.0
+precio_imagen_salida = 30.0
+
 [alertas]
 ampliacion_max = 1.10         # si el producto se amplía más que este factor, se alerta (hasta 10 % no se nota)
 margen_borde = 2              # px: si el producto queda a esta distancia o menos del borde de la imagen de entrada, se alerta

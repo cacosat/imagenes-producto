@@ -10,7 +10,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",
+    "openai>=3.19",
     "pillow>=11.0",
+    "python-dotenv>=1.0",
     "rembg[cpu]>=2.0.85",
     "scipy>=1.11",
 ]
