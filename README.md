@@ -15,6 +15,11 @@ Regla de diseño: **la IA solo crea las vistas; la geometría la hace un script.
 
 Cada producto lleva 4 imágenes, en este orden: **Portada, Lateral, Frontal y Trasera**. La Portada no se genera con IA: se compone con los recortes de la Trasera (a la izquierda y detrás) y la Frontal (a la derecha y delante), del mismo alto; de la trasera se ve 5/6 del ancho.
 
+Decisiones vigentes:
+
+- **Pantallas apagadas** (negras) en todas las vistas, incluida la Portada. Más adelante se puede pasar a wallpaper si hace falta.
+- **Altura de 900 px** en todas las vistas y modelos. El prompt pide ~903 px en la Portada; las referencias van de 873 a 900.
+
 ## Instalación
 
 Requiere Python 3.11 o superior. Funciona en macOS, Windows y Linux; solo cambia cómo se crea y se activa el entorno.
@@ -36,6 +41,13 @@ pip install -e ".[dev]"
 ```
 
 Si PowerShell no deja ejecutar el script de activación, corre antes `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Con el entorno activo, el comando `imgprod` y `pytest` funcionan igual en los tres sistemas.
+
+### Claves de API
+
+La etapa 1 (generar) usa APIs de pago. Copia `.env.example` como `.env` y completa las claves. `.env` no se sube a GitHub.
+
+- `OPENAI_API_KEY`: clave de la **plataforma de API** de OpenAI (platform.openai.com), no de ChatGPT. La suscripción a ChatGPT no incluye la API: se paga aparte, con crédito prepagado. Conviene crear un proyecto propio para este pipeline, con un límite de gasto mensual.
+- `GEMINI_API_KEY`: opcional, para comparar con Gemini (Google AI Studio).
 
 ## Uso
 
@@ -118,3 +130,5 @@ tests/                    pruebas
 ```bash
 pytest
 ```
+
+En GitHub, las pruebas corren solas en Linux y Windows con cada cambio (`.github/workflows/pruebas.yml`).

@@ -1,0 +1,25 @@
+# Corre las pruebas en Linux y Windows con cada cambio en main y en cada pull request.
+# macOS se prueba en local. En un repo privado esto consume minutos del plan gratuito de GitHub Actions
+# (Windows cuenta doble).
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pruebas:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: pytest -q
