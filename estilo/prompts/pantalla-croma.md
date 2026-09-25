@@ -1,0 +1,1 @@
+Pantalla encendida y llena de un solo color plano, exactamente {color_croma}, de borde a borde de la pantalla: sin wallpaper, hora, barra de estado, íconos, texto, reflejos ni degradados. El notch, la perforación o la Dynamic Island quedan negros, como en el equipo real. Ese color se reemplaza después por el wallpaper o por la pantalla apagada.

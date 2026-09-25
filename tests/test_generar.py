@@ -1,5 +1,6 @@
 import io
 import json
+import shutil
 from dataclasses import replace
 from pathlib import Path
 
@@ -18,7 +19,7 @@ from imagenes_producto.generar import (
     preparar_original,
     producto_desde_original,
 )
-from test_estandarizar import telefono
+from test_estandarizar import frontal_croma, telefono, wallpaper
 
 RAIZ = Path(__file__).parents[1]
 # Rutas absolutas a la receta del repo, para que las pruebas no dependan de la carpeta actual.
@@ -37,7 +38,8 @@ def png(im: Image.Image) -> bytes:
 
 
 class ClienteFalso:
-    """Devuelve siempre el mismo teléfono transparente, sin llamar a ninguna API."""
+    """Devuelve siempre el mismo teléfono transparente (la Frontal, con la pantalla croma que pide el prompt),
+    sin llamar a ninguna API."""
 
     def __init__(self, fallar_en: set[str] = frozenset(), fatal: bool = False):
         self.pedidos = []
@@ -50,7 +52,8 @@ class ClienteFalso:
             raise ErrorFatal("API key inválida")
         if vista in self.fallar_en:
             raise ErrorGeneracion("pedido rechazado")
-        return [png(telefono((1024, 1536), (262, 150, 762, 1350)))] * cfg.generar.candidatos, USO
+        dibujo = frontal_croma if vista == "Frontal" and cfg.pantalla.color_croma in prompt else telefono
+        return [png(dibujo((1024, 1536), (262, 150, 762, 1350)))] * cfg.generar.candidatos, USO
 
 
 def original(carpeta: Path, nombre="iPhone 12 Azul.png", lado=1200):
@@ -79,9 +82,30 @@ def test_prompt_por_vista_con_modelo_color_y_rasgos():
     assert "Fondo transparente" in prompt
     assert "{" not in prompt and "}" not in prompt  # no quedaron variables sin reemplazar
 
-    sin_rasgos = armar_prompt("Frontal", "iPhone 12", "Blanco", replace(CFG, generar=replace(CFG.generar, fondo="blanco")))
+    solo_apagada = replace(CFG, generar=replace(CFG.generar, fondo="blanco"),
+                           pantalla=replace(CFG.pantalla, variantes=("apagada",)))
+    sin_rasgos = armar_prompt("Frontal", "iPhone 12", "Blanco", solo_apagada)
     assert "RASGOS CLAVE" not in sin_rasgos and "Pantalla apagada" in sin_rasgos
     assert "blanco liso" in sin_rasgos
+
+
+def test_prompt_frontal_pide_la_pantalla_croma_si_hay_que_armar_wallpaper():
+    prompt = armar_prompt("Frontal", "iPhone 12", "Blanco", CFG)  # por defecto salen las dos variantes
+    assert CFG.pantalla.color_croma in prompt and "Pantalla apagada" not in prompt
+    assert "Dynamic Island quedan negros" in prompt
+    assert "{" not in prompt and "}" not in prompt
+    assert CFG.pantalla.color_croma not in armar_prompt("Trasera", "iPhone 12", "Blanco", CFG)
+
+
+def test_sin_pantalla_en_el_prompt_frontal_no_gasta(tmp_path):
+    prompts = tmp_path / "prompts"
+    shutil.copytree(RAIZ / "estilo/prompts", prompts)
+    (prompts / "frontal.md").write_text("VISTA FRONTAL\n- El frente del teléfono.\n", encoding="utf-8")
+    cfg = replace(CFG, generar=replace(CFG.generar, prompts=str(prompts)))
+    cliente = ClienteFalso()
+    with pytest.raises(ErrorFatal, match="pantalla"):
+        generar_lote([original(tmp_path)], tmp_path / "generadas", cfg, cliente)
+    assert cliente.pedidos == []
 
 
 def test_original_sin_margenes_y_alerta_si_es_chico(tmp_path):
@@ -132,11 +156,14 @@ def test_cli_generar_de_punta_a_punta(tmp_path, monkeypatch):
     (tmp_path / "config.toml").write_text(
         f'[generar]\nprompts = "{(RAIZ / "estilo/prompts").as_posix()}"\n'
         f'referencias = "{(RAIZ / "estilo/referencias").as_posix()}"\n', encoding="utf-8")
+    (tmp_path / "estilo" / "wallpapers").mkdir(parents=True)
+    wallpaper(tmp_path / "estilo" / "wallpapers" / "_default.png")
 
     assert main(["generar", str(original(tmp_path)), "--si"]) == 0
 
     finales = sorted(p.name for p in (tmp_path / "salida" / "iPhone-12-Azul").glob("*.webp"))
-    assert finales == [f"iPhone-12-Azul-Version-Final-{v}.webp" for v in ("Frontal", "Lateral", "Portada", "Trasera")]
+    vistas = ("Portada", "Lateral", "Frontal", "Frontal-Wallpaper", "Trasera")
+    assert finales == sorted(f"iPhone-12-Azul-Version-Final-{v}.webp" for v in vistas)
 
 
 def test_cli_generar_pide_confirmacion(tmp_path, monkeypatch):

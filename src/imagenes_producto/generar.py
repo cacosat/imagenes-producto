@@ -127,8 +127,17 @@ def cargar_rasgos(cfg: Config) -> dict[str, list[str]]:
     return {modelo: [str(r) for r in valores.get("rasgos", [])] for modelo, valores in datos.items()}
 
 
+def pantalla_croma(cfg: Config) -> bool:
+    """La Frontal se pide con la pantalla en color croma cuando hay que armar la variante con wallpaper."""
+    return "wallpaper" in cfg.pantalla.variantes
+
+
 def armar_prompt(vista: str, modelo: str, color: str, cfg: Config, rasgos: list[str] | None = None) -> str:
-    """Prompt de la vista: `comun.md` más el archivo de la vista, con las variables reemplazadas."""
+    """Prompt de la vista: `comun.md` más el archivo de la vista, con las variables reemplazadas.
+
+    `{pantalla}` (en `frontal.md`) se reemplaza por `pantalla-croma.md` o `pantalla-apagada.md` según
+    `pantalla.variantes`.
+    """
     carpeta = Path(cfg.generar.prompts)
     plantilla = (
         (carpeta / "comun.md").read_text(encoding="utf-8").rstrip()
@@ -141,7 +150,13 @@ def armar_prompt(vista: str, modelo: str, color: str, cfg: Config, rasgos: list[
         bloque = "\nRASGOS CLAVE DE ESTE MODELO (confirmados: respétalos aunque no se vean en la imagen 1)\n"
         bloque += "\n".join(f"- {r}" for r in rasgos) + "\n"
     fondo = "transparente" if cfg.generar.fondo == "transparente" else "blanco liso (#FFFFFF), sin degradados"
-    return plantilla.format(vista=vista.lower(), modelo=modelo, color=color, fondo=fondo, rasgos=bloque)
+    texto_pantalla = ""
+    if "{pantalla}" in plantilla:
+        archivo = "pantalla-croma.md" if pantalla_croma(cfg) else "pantalla-apagada.md"
+        texto_pantalla = (carpeta / archivo).read_text(encoding="utf-8").strip().format(
+            color_croma=cfg.pantalla.color_croma)
+    return plantilla.format(vista=vista.lower(), modelo=modelo, color=color, fondo=fondo, rasgos=bloque,
+                            pantalla=texto_pantalla)
 
 
 def preparar_original(ruta: Path, cfg: Config) -> tuple[bytes, list[Alerta]]:
@@ -227,6 +242,10 @@ def generar_lote(
     `<Vista>-2.png`), cada una con su `<Vista>.json`. Un pedido fallido queda registrado y el lote sigue,
     salvo con `ErrorFatal`."""
     rutas_referencia = {v: referencia_de(v, cfg) for v in cfg.generar.vistas}  # falla antes de gastar nada
+    frontal = Path(cfg.generar.prompts) / "frontal.md"
+    if "Frontal" in cfg.generar.vistas and pantalla_croma(cfg) and "{pantalla}" not in frontal.read_text(encoding="utf-8"):
+        raise ErrorFatal(f'{frontal} no tiene {{pantalla}}: sin eso la IA no recibe el pedido de pantalla croma '
+                         'y no se puede armar la Frontal-Wallpaper')
     referencias = {v: _png(ruta) for v, ruta in rutas_referencia.items()}
     rasgos = cargar_rasgos(cfg)
     resultados: list[Generada] = []

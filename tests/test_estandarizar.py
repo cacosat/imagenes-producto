@@ -14,6 +14,7 @@ from imagenes_producto.estandarizar import (
     caja,
     componer,
     componer_portada,
+    componer_portada_de,
     estandarizar,
     identificar,
 )
@@ -36,6 +37,34 @@ def telefono(lienzo, rect, color=(30, 30, 30, 255)):
     radio = min(x1 - x0, y1 - y0) // 8
     ImageDraw.Draw(grande).rounded_rectangle((x0, y0, x1 - 1, y1 - 1), radius=radio, fill=color)
     return grande.resize(lienzo, Image.Resampling.LANCZOS)
+
+
+def frontal_croma(lienzo=(1000, 1500), rect=(200, 100, 700, 1300), color_pantalla=(0, 255, 0), hora=False):
+    """Frontal como la entrega la IA con `pantalla.variantes` que incluye wallpaper: marco negro, pantalla en
+    color croma (con un leve degradado vertical, como sale de la IA) y Dynamic Island. Con `hora`, la IA dibujó
+    además la hora y unos íconos sobre la pantalla."""
+    im = telefono(lienzo, rect, color=(20, 20, 24, 255))
+    x0, y0, x1, y1 = rect
+    m = (x1 - x0) // 20  # marco
+    mascara = telefono(lienzo, (x0 + m, y0 + m, x1 - m, y1 - m)).getchannel("A")
+    degradado = np.linspace(1.0, 0.85, lienzo[1])[:, None, None] * np.array(color_pantalla, float)
+    im.paste(Image.fromarray(np.broadcast_to(degradado, (lienzo[1], lienzo[0], 3)).astype(np.uint8)), (0, 0), mascara)
+    dibujo, cx, arriba = ImageDraw.Draw(im), (x0 + x1) // 2, y0 + m
+    dibujo.rounded_rectangle((cx - 60, arriba + 20, cx + 60, arriba + 55), radius=17, fill=(0, 0, 0, 255))
+    if hora:
+        dibujo.rounded_rectangle((x0 + m + 30, arriba + 25, x0 + m + 110, arriba + 50), radius=6, fill=(250, 250, 250, 255))
+        for i in range(4):
+            izq = x0 + m + 30 + i * 110
+            dibujo.rounded_rectangle((izq, arriba + 150, izq + 80, arriba + 230), radius=18, fill=(255, 190, 60, 255))
+    return im
+
+
+def wallpaper(ruta, arriba=(200, 40, 40), abajo=(40, 40, 200), medidas=(600, 1300)):
+    """Wallpaper de mentira: degradado vertical de rojo (arriba) a azul (abajo)."""
+    t = np.linspace(0, 1, medidas[1])[:, None, None]
+    px = np.array(arriba, float) * (1 - t) + np.array(abajo, float) * t
+    Image.fromarray(np.broadcast_to(px, (medidas[1], medidas[0], 3)).astype(np.uint8)).save(ruta)
+    return ruta
 
 
 def medir(final):
@@ -174,6 +203,62 @@ def test_portada_trasera_detras_con_cinco_sextos_visibles():
     assert visible / ancho_frontal == pytest.approx(5 / 6, abs=0.01)
 
 
+def par_de_prueba(**portada):
+    """Trasera roja y frontal azul del mismo ancho (480 × 1000), y el par de la Portada con esos parámetros."""
+    trasera = estandarizar(telefono((700, 1300), (50, 100, 530, 1100), color=ROJO), CFG).maestro
+    frontal = estandarizar(telefono((900, 1500), (300, 200, 780, 1200), color=AZUL), CFG).maestro
+    cfg = replace(TRANSPARENTE, portada=replace(CFG.portada, **portada))
+    par, alertas = componer_portada(trasera, frontal, cfg)
+    px = np.asarray(par).astype(int)
+    opaco = px[..., 3] >= 128
+    rojo, azul = opaco & (px[..., 0] > px[..., 2] + 50), opaco & (px[..., 2] > px[..., 0] + 50)
+    return par, alertas, rojo, azul
+
+
+def extension(mascara, eje):
+    """Primera y última fila (eje 1) o columna (eje 0) de la máscara."""
+    indices = np.flatnonzero(mascara.any(axis=eje))
+    return indices[0], indices[-1] + 1
+
+
+@pytest.mark.parametrize("solape", [0.0, 1 / 6, 0.4, -0.1])
+def test_portada_con_solape_configurable(solape):
+    _, alertas, rojo, azul = par_de_prueba(solape=solape)
+    assert not alertas
+    (r0, r1), (a0, a1) = extension(rojo, 0), extension(azul, 0)
+    # La frontal (adelante) se ve entera: de la trasera se ve 1 − solape del ancho de la frontal (con
+    # solape negativo, queda un espacio entre las dos).
+    assert (a0 - r0) / (a1 - a0) == pytest.approx(1 - solape, abs=0.01)
+
+
+def test_portada_espejada_con_la_trasera_adelante():
+    par, _, rojo, azul = par_de_prueba(solape=0.3, lado_trasera="derecha", adelante="trasera")
+    # Se mide a media altura: en las esquinas redondeadas de la de adelante asoma la de atrás.
+    medio = slice(par.height // 2 - 50, par.height // 2 + 50)
+    (r0, r1), (a0, a1) = extension(rojo[medio], 0), extension(azul[medio], 0)
+    assert a0 < r0 and par.width - r1 <= 3  # la frontal a la izquierda y la trasera a la derecha
+    # La trasera tapa a la frontal: lo que se ve de la frontal termina donde empieza la trasera (±el borde suave)…
+    assert abs(a1 - r0) <= 2
+    assert (r1 - r0 - (a1 - a0)) / (r1 - r0) == pytest.approx(0.3, abs=0.01)  # …y le tapa el 30 % del ancho
+
+
+def test_portada_con_desfase_vertical():
+    _, _, rojo, azul = par_de_prueba(desfase_vertical=0.1)
+    (r0, _), (a0, a1) = extension(rojo, 1), extension(azul, 1)
+    assert (a0 - r0) / (a1 - a0) == pytest.approx(0.1, abs=0.01)  # la frontal baja un 10 % de su alto
+
+
+def test_portada_usa_la_otra_frontal_si_falta_la_pedida(tmp_path):
+    maestros = tmp_path / "iPhone-Prueba-Azul" / "maestros"
+    maestros.mkdir(parents=True)
+    estandarizar(telefono((700, 1300), (50, 100, 530, 1100)), CFG).maestro.save(maestros / "Trasera.png")
+    estandarizar(telefono((700, 1300), (50, 100, 530, 1100)), CFG).maestro.save(maestros / "Frontal.png")
+    cfg = replace(CFG, portada=replace(CFG.portada, frontal="wallpaper"))
+    r = componer_portada_de(tmp_path / "iPhone-Prueba-Azul", cfg)
+    assert r.entrada == "compuesta: Trasera + Frontal" and codigos(r) == ["PORTADA_CON_OTRA_FRONTAL"]
+    assert (tmp_path / "iPhone-Prueba-Azul" / "iPhone-Prueba-Azul-Version-Final-Portada.webp").exists()
+
+
 def test_portada_alerta_si_frontal_y_trasera_no_tienen_la_misma_proporcion():
     trasera = estandarizar(telefono((700, 1300), (50, 100, 530, 1100)), CFG).maestro  # 480 × 1000
     frontal = estandarizar(telefono((700, 1300), (50, 100, 590, 1100)), CFG).maestro  # 540 × 1000
@@ -226,6 +311,13 @@ def test_config_del_repo_es_valida():
     cargar_config(RAIZ / "config.toml")
 
 
+def test_config_con_visible_trasera_explica_como_migrar(tmp_path):
+    ruta = tmp_path / "config.toml"
+    ruta.write_text("[portada]\nvisible_trasera = 0.8333\n", encoding="utf-8")
+    with pytest.raises(ErrorConfig, match="portada.solape"):
+        cargar_config(ruta)
+
+
 P3 = Path("/System/Library/ColorSync/Profiles/Display P3.icc")
 
 
@@ -240,24 +332,56 @@ def test_abrir_convierte_display_p3_a_srgb(tmp_path):
     assert "icc_profile" not in im.info
 
 
-def test_cli_compone_la_portada_y_nombra_como_el_catalogo(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)  # sin config.toml: defaults
+def producto_de_prueba(tmp_path, con_wallpaper=True):
+    """Entrada de un producto como la deja la etapa 1 (Frontal con pantalla croma), y el wallpaper por defecto."""
     carpeta = tmp_path / "entrada" / "iPhone-Prueba-Azul"
     carpeta.mkdir(parents=True)
-    telefono((1000, 1500), (200, 100, 700, 1300)).save(carpeta / "frontal.png")
+    frontal_croma().save(carpeta / "frontal.png")
     telefono((1000, 1500), (250, 150, 750, 1350)).save(carpeta / "trasera.png")
     telefono((600, 1500), (280, 100, 320, 1300)).save(carpeta / "lateral.png")
+    if con_wallpaper:
+        (tmp_path / "estilo" / "wallpapers").mkdir(parents=True)
+        wallpaper(tmp_path / "estilo" / "wallpapers" / "_default.png")
+    return tmp_path / "salida" / "iPhone-Prueba-Azul"
+
+
+def test_cli_compone_la_portada_y_nombra_como_el_catalogo(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # sin config.toml: defaults
+    producto = producto_de_prueba(tmp_path)
 
     assert main(["estandarizar", "entrada", "-s", "salida"]) == 0
 
-    producto = tmp_path / "salida" / "iPhone-Prueba-Azul"
-    for vista in ("Portada", "Lateral", "Frontal", "Trasera"):
+    vistas = ["Portada", "Lateral", "Frontal", "Frontal-Wallpaper", "Trasera"]
+    for vista in vistas:
         ruta = producto / f"iPhone-Prueba-Azul-Version-Final-{vista}.webp"
         assert ruta.stat().st_size <= CFG.salida.peso_max_kb * 1000
         with Image.open(ruta) as final:
             assert final.format == "WEBP" and final.size == (CFG.lienzo.ancho, CFG.lienzo.alto)
         assert (producto / "maestros" / f"{vista}.png").exists()
     reporte = json.loads((producto / "reporte.json").read_text(encoding="utf-8"))
-    assert list(reporte) == ["Portada", "Lateral", "Frontal", "Trasera"]
+    assert list(reporte) == vistas
     assert reporte["Portada"]["entrada"] == "compuesta: Trasera + Frontal"
+    assert Path(reporte["Frontal-Wallpaper"]["wallpaper"]).name == "_default.png"
     assert all(not r["alertas"] and not r["error"] for r in reporte.values())
+
+
+def test_cli_portada_compara_solapes_sin_tocar_nada_y_aplica_el_de_config(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    producto = producto_de_prueba(tmp_path)
+    assert main(["estandarizar", "entrada", "-s", "salida"]) == 0
+    portada = producto / "iPhone-Prueba-Azul-Version-Final-Portada.webp"
+    antes = portada.read_bytes()
+
+    assert main(["portada", "salida", "--solape", "0,0.4"]) == 0
+    with Image.open(tmp_path / "salida" / "muestras-portada.jpg") as hoja:
+        assert hoja.width > hoja.height  # 1 producto × 2 solapes
+    assert portada.read_bytes() == antes  # comparar no cambia ninguna imagen
+
+    (tmp_path / "config.toml").write_text("[portada]\nsolape = 0.4\nfrontal = \"wallpaper\"\n", encoding="utf-8")
+    assert main(["portada"]) == 0  # default: salida/
+    assert portada.read_bytes() != antes
+    reporte = json.loads((producto / "reporte.json").read_text(encoding="utf-8"))
+    assert reporte["Portada"]["entrada"] == "compuesta: Trasera + Frontal-Wallpaper"
+
+    assert main(["portada", "salida", "--solape", "2"]) == 2  # fuera de rango
+    assert main(["portada", "entrada"]) == 2  # sin recortes maestros
