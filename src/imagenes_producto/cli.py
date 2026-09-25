@@ -10,7 +10,14 @@ from pathlib import Path
 
 from . import __version__, generar
 from .config import Config, ErrorConfig, cargar_config
-from .estandarizar import ENTRADA_PORTADA, Resultado, estandarizar_lote
+from .estandarizar import (
+    MUESTRAS_PORTADA,
+    Resultado,
+    carpetas_de_producto,
+    estandarizar_lote,
+    muestras_portada,
+    recomponer_portadas,
+)
 from .imagen import EXTENSIONES, buscar_imagenes
 
 CONFIG_DEFAULT = Path("config.toml")
@@ -57,6 +64,19 @@ def main(argv: list[str] | None = None) -> int:
     est.add_argument("entradas", nargs="+", type=Path, metavar="ENTRADA", help="imágenes o carpetas de imágenes")
     est.add_argument("-s", "--salida", type=Path, default=Path("salida"), help="carpeta de salida (default: salida/)")
 
+    por = comandos.add_parser(
+        "portada",
+        parents=[comun],
+        help="vuelve a componer la Portada desde los recortes maestros, o compara solapes",
+        description="Vuelve a componer la Portada de cada producto con los recortes maestros que dejó "
+        "estandarizar, según [portada] de config.toml, sin volver a quitar el fondo. Con --solape arma una hoja "
+        f"({MUESTRAS_PORTADA}) para comparar varios valores y no cambia ninguna imagen.",
+    )
+    por.add_argument("carpetas", nargs="*", type=Path, default=[Path("salida")], metavar="CARPETA",
+                     help="carpeta de salida o de un producto (default: salida/)")
+    por.add_argument("--solape", type=_numeros, metavar="V1,V2,…",
+                     help="valores de portada.solape a comparar, p. ej. 0,0.1667,0.35")
+
     args = parser.parse_args(argv)
     try:
         cfg = cargar_config(args.config or (CONFIG_DEFAULT if CONFIG_DEFAULT.exists() else None))
@@ -65,7 +85,19 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.comando == "generar":
         return _generar(args, cfg)
+    if args.comando == "portada":
+        return _portada(args.carpetas, args.solape, cfg)
     return _estandarizar(args.entradas, args.salida, cfg)
+
+
+def _numeros(texto: str) -> list[float]:
+    try:
+        valores = [float(v) for v in texto.split(",") if v.strip()]
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"se esperaban números separados por coma, p. ej. 0,0.1667,0.35: {texto}")
+    if not valores:
+        raise argparse.ArgumentTypeError("se esperaba al menos un número")
+    return valores
 
 
 def _generar(args: argparse.Namespace, cfg: Config) -> int:
@@ -143,8 +175,43 @@ def _estandarizar(entradas: list[Path], salida: Path, cfg: Config) -> int:
     return 1 if errores else 0
 
 
+def _portada(carpetas: list[Path], solapes: list[float] | None, cfg: Config) -> int:
+    faltantes = [str(c) for c in carpetas if not c.exists()]
+    if faltantes:
+        print(f"No existe: {', '.join(faltantes)}", file=sys.stderr)
+        return 2
+    productos = carpetas_de_producto(carpetas)
+    if not productos:
+        print("No hay productos con recortes maestros (carpeta maestros/): corre antes imgprod estandarizar.",
+              file=sys.stderr)
+        return 2
+
+    if solapes:
+        destino = carpetas[0] / MUESTRAS_PORTADA
+        try:
+            n = muestras_portada(productos, solapes, cfg, destino)
+        except ErrorConfig as e:
+            print(f"Error en --solape: {e}", file=sys.stderr)
+            return 2
+        if not n:
+            print("Ningún producto tiene los maestros de la Trasera y de la Frontal.", file=sys.stderr)
+            return 1
+        print(f"Hoja con {n} producto{'s' if n != 1 else ''} × {len(solapes)} solapes → {destino}\n"
+              "Elige un valor, ponlo en [portada] solape de config.toml y corre imgprod portada para aplicarlo.")
+        return 0
+
+    print(f"Componiendo la Portada de {len(productos)} producto{'s' if len(productos) != 1 else ''} "
+          f"(solape {cfg.portada.solape:g}, desfase {cfg.portada.desfase_vertical:g}, frontal {cfg.portada.frontal})")
+    resultados = recomponer_portadas(productos, cfg, avance=_imprimir)
+    errores = sum(1 for r in resultados if r.error)
+    print(f"\n{_imagenes(len(resultados))}: {len(resultados) - errores} ok, {errores} con error.")
+    return 1 if errores else 0
+
+
 def _imprimir(r: Resultado) -> None:
-    nombre = f"{r.producto} · {r.vista}" + (" (compuesta)" if r.entrada == ENTRADA_PORTADA else "")
+    nombre = f"{r.producto} · {r.vista}" + (" (compuesta)" if r.entrada.startswith("compuesta") else "")
+    if r.wallpaper:
+        nombre += f" (wallpaper {Path(r.wallpaper).name})"
     if r.error:
         print(f"  ✗ {nombre}: {r.error}")
         return

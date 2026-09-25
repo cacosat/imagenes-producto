@@ -1,0 +1,1211 @@
+<meta charset="utf-8">
+<title>Pipeline de fotos iPhone</title>
+<meta name="description" content="Cómo se generan y estandarizan las 5 imágenes de ficha de cada iPhone con imgprod: etapas, entradas y salidas, Frontal con y sin wallpaper, Portada con solape configurable y el diseño propuesto para revisar y publicar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F6F7FB;
+    --surface: #FFFFFF;
+    --ink: #151930;
+    --ink-2: #454C72;
+    --ink-3: #6A7197;
+    --line: #DCDFEE;
+    --accent: #37417F;
+    --link: #3A5FE0;
+    --tint: #EEF0FF;
+    --code-bg: #F1F3FA;
+    --ok-bg: #C6FFAD;
+    --ok-ink: #151930;
+    --todo-ink: #454C72;
+    --todo-line: #9AA5F0;
+    --warn-bg: #FFF4DB;
+    --warn-ink: #5E3F00;
+    --warn-line: #EDCB82;
+    --crit-bg: #FDEDEF;
+    --crit-ink: #8E1B2B;
+    --crit-line: #F0B7BF;
+    --guide: #8C99F2;
+    --mark: #3A5FE0;
+    --croma: #00FF00;
+    --t-ok: #1E7B45;
+    --t-warn: #8A5A00;
+    --t-err: #B42338;
+    --font-sans: "Poppins", "Montserrat", "Nunito Sans", "Segoe UI", Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #151930;
+      --surface: #1C2142;
+      --ink: #ECEEFF;
+      --ink-2: #BCC3EA;
+      --ink-3: #939BC8;
+      --line: #2F3663;
+      --accent: #AFB9FF;
+      --link: #AFB9FF;
+      --tint: #232A55;
+      --code-bg: #10142B;
+      --ok-bg: #C6FFAD;
+      --ok-ink: #151930;
+      --todo-ink: #BCC3EA;
+      --todo-line: #5D67AD;
+      --warn-bg: #362D14;
+      --warn-ink: #FFDB94;
+      --warn-line: #6A5522;
+      --crit-bg: #3A1923;
+      --crit-ink: #FFB9C3;
+      --crit-line: #6D2B3A;
+      --guide: #7C88E0;
+      --mark: #8FA8FF;
+      --t-ok: #8FE3A8;
+      --t-warn: #FFD27A;
+      --t-err: #FF9CAB;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #151930;
+    --surface: #1C2142;
+    --ink: #ECEEFF;
+    --ink-2: #BCC3EA;
+    --ink-3: #939BC8;
+    --line: #2F3663;
+    --accent: #AFB9FF;
+    --link: #AFB9FF;
+    --tint: #232A55;
+    --code-bg: #10142B;
+    --ok-bg: #C6FFAD;
+    --ok-ink: #151930;
+    --todo-ink: #BCC3EA;
+    --todo-line: #5D67AD;
+    --warn-bg: #362D14;
+    --warn-ink: #FFDB94;
+    --warn-line: #6A5522;
+    --crit-bg: #3A1923;
+    --crit-ink: #FFB9C3;
+    --crit-line: #6D2B3A;
+    --guide: #7C88E0;
+    --mark: #8FA8FF;
+    --t-ok: #8FE3A8;
+    --t-warn: #FFD27A;
+    --t-err: #FF9CAB;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 400 16px/1.65 var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--link); text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; border-radius: 4px; }
+  code, kbd, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+  :not(pre) > code {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 0.05em 0.35em;
+    overflow-wrap: anywhere;
+  }
+  strong { font-weight: 600; }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding-inline: 28px; padding-block: 44px 96px; }
+
+  /* Encabezado */
+  .doc-head { display: grid; gap: 14px; padding-bottom: 32px; border-bottom: 1px solid var(--line); margin-bottom: 40px; }
+  .eyebrow { font: 500 12.5px/1.4 var(--font-mono); letter-spacing: 0.04em; color: var(--ink-3); text-transform: uppercase; }
+  h1 { font-size: clamp(28px, 4.2vw, 40px); line-height: 1.15; font-weight: 700; margin: 0; letter-spacing: -0.01em; text-wrap: balance; max-width: 24ch; }
+  .lede { font-size: 17.5px; color: var(--ink-2); max-width: 68ch; margin: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: 13.5px; color: var(--ink-2); }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 500 12px/1 var(--font-sans); letter-spacing: 0.02em;
+    padding: 6px 10px; border-radius: 999px; white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .chip.ok { background: var(--ok-bg); color: var(--ok-ink); }
+  .chip.todo { background: transparent; color: var(--todo-ink); border: 1px dashed var(--todo-line); }
+
+  /* Diseño en dos columnas */
+  .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 56px; }
+  .toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+  .toc-title { font: 500 12px/1.4 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 10px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .toc a { display: block; padding: 5px 10px; border-radius: 7px; color: var(--ink-2); text-decoration: none; line-height: 1.35; }
+  .toc a:hover { background: var(--tint); color: var(--ink); }
+  .toc a.activo { background: var(--tint); color: var(--ink); font-weight: 500; }
+  .toc .grupo { margin-top: 8px; padding: 6px 10px 2px; font: 500 11.5px/1.3 var(--font-mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+  main { min-width: 0; display: grid; gap: 64px; }
+
+  /* Secciones */
+  section { scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 20px); display: grid; gap: 18px; min-width: 0; }
+  h2 { font-size: 25px; line-height: 1.25; font-weight: 600; margin: 0; letter-spacing: -0.005em; text-wrap: balance; }
+  h3 { font-size: 18px; line-height: 1.35; font-weight: 600; margin: 10px 0 0; text-wrap: balance; }
+  h4 { font: 600 12.5px/1.3 var(--font-mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); margin: 0; }
+  p { margin: 0; max-width: 72ch; }
+  ul, ol { margin: 0; padding-left: 1.3em; max-width: 72ch; display: grid; gap: 6px; }
+  .muted { color: var(--ink-2); }
+
+  .stage-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .stage-num { font: 500 12.5px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); flex-basis: 100%; }
+  .stage-head h2 { margin-right: 4px; }
+
+  /* Lo que pasa por defecto */
+  ul.hechos { gap: 12px; max-width: 76ch; }
+  ul.hechos > li { padding-left: 2px; }
+  ol.galeria { list-style: none; padding: 0; margin: 6px 0 2px; display: flex; flex-wrap: wrap; gap: 8px; counter-reset: vista; max-width: none; }
+  ol.galeria > li {
+    counter-increment: vista; display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 12px 5px 5px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+    font-size: 14px; line-height: 1.3;
+  }
+  ol.galeria > li::before {
+    content: counter(vista); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+    font: 600 11.5px/1 var(--font-mono); background: var(--tint); color: var(--accent);
+  }
+  ol.galeria > li.nueva { border-color: var(--accent); }
+  .croma {
+    display: inline-block; width: 0.8em; height: 0.8em; border-radius: 3px; background: var(--croma);
+    border: 1px solid var(--line); vertical-align: -0.06em;
+  }
+
+  /* Entrada / salida */
+  .io { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .io > div { padding: 16px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+  .io > div + div { border-left: 1px solid var(--line); }
+  .io ul { list-style: none; padding: 0; gap: 8px; font-size: 14.5px; }
+  .io li { display: grid; gap: 1px; }
+  .io li .mono { font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }
+  .io li span.desc { color: var(--ink-2); font-size: 13.5px; }
+
+  /* Datos */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; margin: 0; }
+  .stats > div { padding: 14px 16px; display: grid; gap: 2px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 0 -1px -1px 0; }
+  .stats dt { font-size: 13px; color: var(--ink-2); line-height: 1.4; order: 2; }
+  .stats dd { margin: 0; font: 600 26px/1.1 var(--font-sans); font-variant-numeric: tabular-nums; order: 1; color: var(--accent); }
+
+  /* Tablas */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.5; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; font-size: 12.5px; color: var(--ink-3); background: var(--tint); letter-spacing: 0.02em; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td .mono { font-size: 12.5px; }
+  .nowrap { white-space: nowrap; }
+  .t-ok { color: var(--t-ok); }
+  .t-warn { color: var(--t-warn); }
+  .t-err { color: var(--t-err); }
+
+  /* Código y consola */
+  pre {
+    margin: 0; padding: 14px 16px; overflow-x: auto;
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 12px;
+    font: 400 13px/1.6 var(--font-mono); color: var(--ink); tab-size: 4;
+  }
+  pre .c { color: var(--ink-3); }
+  pre .p { color: var(--accent); font-weight: 500; }
+  pre.prosa { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .code-label { font: 500 12px/1.3 var(--font-mono); color: var(--ink-3); margin-bottom: -10px; max-width: none; }
+
+  /* Avisos */
+  .callout { border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; font-size: 15px; border: 1px solid; max-width: 78ch; }
+  .callout.nota { background: var(--tint); border-color: var(--line); }
+  .callout.warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-ink); }
+  .callout.crit { background: var(--crit-bg); border-color: var(--crit-line); color: var(--crit-ink); }
+  .callout.warn code, .callout.crit code { color: inherit; background: transparent; }
+
+  /* Pasos */
+  ol.pasos { list-style: none; padding: 0; counter-reset: paso; gap: 14px; max-width: 80ch; }
+  ol.pasos > li { counter-increment: paso; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; }
+  ol.pasos > li::before {
+    content: counter(paso); width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center; font: 600 13px/1 var(--font-mono);
+    background: var(--tint); color: var(--accent); border: 1px solid var(--line);
+  }
+  ol.pasos > li > div { display: grid; gap: 4px; min-width: 0; }
+  ol.pasos ul { gap: 4px; font-size: 15px; }
+
+  /* Figuras */
+  figure { margin: 0; display: grid; gap: 10px; }
+  figcaption { font-size: 13.5px; color: var(--ink-3); max-width: 80ch; }
+  .diagram { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 12px; }
+  .diagram svg { display: block; width: 100%; min-width: 780px; height: auto; color: var(--ink); }
+  .foto { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+  .foto img { display: block; width: 100%; height: auto; }
+  .foto.angosta { max-width: 820px; }
+
+  /* Clases del SVG (estilos de página, no dentro del SVG) */
+  .d-box { fill: var(--surface); stroke: var(--todo-line); stroke-width: 1.5; stroke-dasharray: 6 5; }
+  .d-box.ok { fill: var(--tint); stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
+  .d-chip { fill: var(--code-bg); stroke: var(--line); }
+  .d-num { font: 600 12px var(--font-mono); fill: var(--ink-3); }
+  .d-estado { font: 500 10.5px var(--font-mono); fill: var(--ink-3); }
+  .d-estado.ok { fill: var(--accent); }
+  .d-name { font: 600 15px var(--font-sans); fill: var(--ink); }
+  .d-sub { font: 400 11.5px var(--font-sans); fill: var(--ink-2); }
+  .d-file { font: 400 11px var(--font-mono); fill: var(--ink); }
+  .d-arrow { stroke: currentColor; stroke-width: 1.6; fill: none; }
+  .d-arrow.dash { stroke-dasharray: 5 4; }
+  .d-label { font: 500 11.5px var(--font-sans); fill: var(--ink-2); }
+  .d-title { font: 600 13px var(--font-sans); fill: var(--ink); }
+  .d-phone { fill: var(--surface); stroke: currentColor; stroke-width: 2; }
+  .d-bump { fill: var(--tint); stroke: currentColor; stroke-width: 1.2; }
+  .d-lens { fill: var(--ink-3); }
+  .d-bbox { fill: none; stroke: var(--mark); stroke-width: 2; }
+  .d-bbox-weak { fill: none; stroke: var(--ink-3); stroke-width: 1.3; stroke-dasharray: 5 4; }
+  .d-canvas { fill: var(--surface); stroke: currentColor; stroke-width: 1.4; }
+  .d-guide { stroke: var(--guide); stroke-width: 1; stroke-dasharray: 4 4; }
+  .d-cross { stroke: var(--mark); stroke-width: 1.6; }
+  .d-dim { stroke: var(--ink-2); stroke-width: 1.2; }
+  .d-note { font: 400 11px var(--font-mono); fill: var(--ink-3); }
+  .d-strong { font: 600 12.5px var(--font-sans); fill: var(--ink); }
+  .d-strong.mark { fill: var(--mark); }
+  .d-mark-line { stroke: var(--mark); stroke-width: 1.2; }
+  .d-weak-line { stroke: var(--ink-3); stroke-width: 1.2; }
+  .d-arrowhead { fill: currentColor; }
+  .d-screen { fill: var(--tint); stroke: currentColor; stroke-width: 1; }
+  .d-ink { fill: currentColor; }
+
+  footer { margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-3); display: grid; gap: 4px; }
+
+  @media (max-width: 1060px) {
+    .layout { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+    .toc { position: static; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 14px; }
+    .toc ol { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+    .toc .grupo { grid-column: 1 / -1; }
+  }
+  @media (max-width: 680px) {
+    .wrap { padding-inline: 16px; padding-block: 28px 64px; }
+    .io { grid-template-columns: minmax(0, 1fr); }
+    .io > div + div { border-left: 0; border-top: 1px solid var(--line); }
+    main { gap: 52px; }
+    h2 { font-size: 22px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="doc-head">
+    <div class="eyebrow">Documento técnico · Reuse Ecommerce · v3 · 25 sep 2026</div>
+    <h1>Pipeline de imágenes de producto para las fichas de iPhone</h1>
+    <p class="lede">Cómo una foto original de un iPhone se convierte en sus 5 imágenes de ficha. La IA genera 3 vistas por API. <code>imgprod estandarizar</code> las recorta, escala y centra, arma la Frontal con y sin wallpaper desde una sola imagen y compone la Portada con el solape configurado. La revisión y la publicación en Shopify están por definir.</p>
+    <div class="legend" aria-label="Estado de las etapas">
+      <span class="chip ok">Implementada</span>
+      <span class="chip todo">Por definir</span>
+      <span>Proyecto <code>imagenes-producto</code>, comando <code>imgprod</code>. Datos del catálogo: Shopify Reuse Chile. Specs de APIs y marketplaces verificadas el 24 sep 2026.</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Contenido">
+      <p class="toc-title">Contenido</p>
+      <ol>
+        <li><a href="#por-que">Por qué</a></li>
+        <li><a href="#vista-general">Vista general</a></li>
+        <li><a href="#por-defecto">Qué pasa por defecto</a></li>
+        <li><a href="#uso">Cómo se usa</a></li>
+        <li><a href="#convenciones">Convenciones</a></li>
+        <li class="grupo">Etapas</li>
+        <li><a href="#etapa-1">1 · Generar</a></li>
+        <li><a href="#etapa-2">2 · Estandarizar</a></li>
+        <li><a href="#frontal">Frontal y wallpaper</a></li>
+        <li><a href="#portada">Portada y solape</a></li>
+        <li><a href="#etapa-3">3 · Revisar</a></li>
+        <li><a href="#etapa-4">4 · Publicar</a></li>
+        <li class="grupo">Referencia</li>
+        <li><a href="#configuracion">Configuración</a></li>
+        <li><a href="#alertas">Alertas</a></li>
+        <li><a href="#proveedores">Proveedores de IA</a></li>
+        <li><a href="#canales">Requisitos por canal</a></li>
+        <li><a href="#decisiones">Decisiones abiertas</a></li>
+        <li><a href="#riesgos">Riesgos</a></li>
+        <li><a href="#fuentes">Fuentes</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <!-- POR QUÉ -->
+      <section id="por-que">
+        <h2>Por qué</h2>
+        <p>Antes, cada set de fotos se hacía a mano en ChatGPT. Se enviaban los originales, referencias y un prompt; se generaban 4 vistas; se pedía estandarizar centrado y tamaño; y se subía a Shopify ficha por ficha. La revisión de las fichas de iPhone activas muestra el resultado:</p>
+        <dl class="stats">
+          <div><dt>fichas de iPhone activas</dt><dd>673</dd></div>
+          <div><dt>combinaciones modelo + color: el trabajo real</dt><dd>183</dd></div>
+          <div><dt>tamaños de imagen distintos</dt><dd>25</dd></div>
+          <div><dt>fichas que mezclan tamaños en su galería</dt><dd>36 %</dd></div>
+          <div><dt>veces que se subió el mismo QR de Subtel</dt><dd>401</dd></div>
+        </dl>
+        <p>Cada combinación comparte sus fotos con 3,7 fichas en promedio (capacidad × condición), así que el trabajo real se hace por combinación. El catálogo completo son <strong>549 imágenes de IA</strong> (3 por combinación), que se convierten en <strong>915 finales</strong> (5 por combinación). El 64 % de las fichas ya usa el set <code>FichaFinalReuse</code> en 1000×1000 WebP, pero el proceso no lo imponía, y las fichas más nuevas (17 Pro, 17 Pro Max, 17e) entraron con exportes "Diseño sin título", PNG de 1200 px y hasta una imagen de 642×1223.</p>
+        <p>El chat mezclaba tres trabajos que necesitan herramientas distintas.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Trabajo</th><th>Ejemplo</th><th>Herramienta</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Creativo</strong></td><td>Generar la vista lateral a partir de una foto de frente</td><td>IA generativa por API, con prompt y referencia fijos por vista (etapa 1)</td></tr>
+              <tr><td><strong>Mecánico</strong></td><td>Centrar, escalar, poner fondo y formato; poner un wallpaper; armar la Portada</td><td>Script determinista (etapa 2). Si lo hace la IA, redibuja la imagen y puede alterar el teléfono</td></tr>
+              <tr><td><strong>De criterio</strong></td><td>¿Es el modelo correcto? ¿Están bien las cámaras y el color?</td><td>Una persona, con alertas automáticas (etapa 3)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VISTA GENERAL -->
+      <section id="vista-general">
+        <h2>Vista general</h2>
+        <figure>
+          <div class="diagram">
+            <svg viewBox="0 0 1040 272" role="img" aria-label="Flujo de cuatro etapas. 1 Generar, implementada: la IA crea 3 vistas en generadas/. 2 Estandarizar, implementada: deja 5 imágenes finales en salida/, y el comando imgprod portada vuelve a componer la Portada desde los recortes maestros. 3 Revisar y 4 Publicar en Shopify están por definir; la propuesta es que solo las vistas rechazadas vuelvan a generarse.">
+              <defs>
+                <marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" class="d-arrowhead"></path>
+                </marker>
+              </defs>
+              <!-- 1 -->
+              <rect class="d-box ok" x="12" y="24" width="220" height="128" rx="10"></rect>
+              <text class="d-num" x="26" y="46">1</text>
+              <text class="d-estado ok" x="218" y="46" text-anchor="end">implementada</text>
+              <text class="d-name" x="26" y="72">Generar</text>
+              <text class="d-sub" x="26" y="92">IA por API: 3 vistas</text>
+              <rect class="d-chip" x="24" y="108" width="196" height="28" rx="6"></rect>
+              <text class="d-file" x="34" y="126">generadas/&lt;producto&gt;/</text>
+              <!-- 2 -->
+              <rect class="d-box ok" x="276" y="24" width="220" height="128" rx="10"></rect>
+              <text class="d-num" x="290" y="46">2</text>
+              <text class="d-estado ok" x="482" y="46" text-anchor="end">implementada</text>
+              <text class="d-name" x="290" y="72">Estandarizar</text>
+              <text class="d-sub" x="290" y="92">5 imágenes finales por equipo</text>
+              <rect class="d-chip" x="288" y="108" width="196" height="28" rx="6"></rect>
+              <text class="d-file" x="298" y="126">salida/&lt;producto&gt;/</text>
+              <!-- 3 -->
+              <rect class="d-box" x="540" y="24" width="220" height="128" rx="10"></rect>
+              <text class="d-num" x="554" y="46">3</text>
+              <text class="d-estado" x="746" y="46" text-anchor="end">por definir</text>
+              <text class="d-name" x="554" y="72">Revisar</text>
+              <text class="d-sub" x="554" y="92">una persona aprueba</text>
+              <rect class="d-chip" x="552" y="108" width="196" height="28" rx="6"></rect>
+              <text class="d-file" x="562" y="126">revision.json</text>
+              <!-- 4 -->
+              <rect class="d-box" x="804" y="24" width="220" height="128" rx="10"></rect>
+              <text class="d-num" x="818" y="46">4</text>
+              <text class="d-estado" x="1010" y="46" text-anchor="end">por definir</text>
+              <text class="d-name" x="818" y="72">Publicar</text>
+              <text class="d-sub" x="818" y="92">1 archivo → N fichas</text>
+              <rect class="d-chip" x="816" y="108" width="196" height="28" rx="6"></rect>
+              <text class="d-file" x="826" y="126">Shopify CL · MX · PE</text>
+              <!-- Flechas principales -->
+              <line class="d-arrow" x1="234" y1="88" x2="272" y2="88" marker-end="url(#flecha)"></line>
+              <line class="d-arrow" x1="498" y1="88" x2="536" y2="88" marker-end="url(#flecha)"></line>
+              <line class="d-arrow" x1="762" y1="88" x2="800" y2="88" marker-end="url(#flecha)"></line>
+              <!-- imgprod portada -->
+              <path class="d-arrow" d="M466,152 L466,182 L306,182 L306,158" marker-end="url(#flecha)"></path>
+              <text class="d-strong" x="386" y="204" text-anchor="middle">imgprod portada</text>
+              <text class="d-note" x="386" y="220" text-anchor="middle">recompone la Portada desde maestros/</text>
+              <!-- Rechazadas -->
+              <path class="d-arrow dash" d="M650,152 L650,242 L122,242 L122,158" marker-end="url(#flecha)"></path>
+              <text class="d-label" x="386" y="262" text-anchor="middle">propuesto: solo las vistas rechazadas vuelven a generarse</text>
+            </svg>
+          </div>
+          <figcaption>Borde continuo = implementada; borde punteado = por definir. Cada etapa deja archivos en disco que la siguiente lee, así que se puede correr o repetir cualquiera por separado. <code>imgprod generar</code> corre la etapa 1 y a continuación la 2.</figcaption>
+        </figure>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Etapa</th><th>Qué hace</th><th>Entra</th><th>Sale</th><th>Estado</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap"><a href="#etapa-1">1 · Generar</a><br><code>imgprod generar</code></td><td>Pide a la API 3 vistas por equipo: Lateral, Frontal (con pantalla croma) y Trasera</td><td>Originales <code>&lt;Modelo&gt; &lt;Color&gt;.&lt;ext&gt;</code>, <code>estilo/</code></td><td><code>generadas/&lt;producto&gt;/&lt;Vista&gt;.png</code> y <code>.json</code></td><td><span class="chip ok">Implementada</span></td></tr>
+              <tr><td class="nowrap"><a href="#etapa-2">2 · Estandarizar</a><br><code>imgprod estandarizar</code><br><code>imgprod portada</code></td><td>Quita el fondo, recorta, escala y centra; arma la Frontal con y sin wallpaper; compone la Portada</td><td><code>generadas/</code> o imágenes con el nombre del catálogo</td><td><code>salida/&lt;producto&gt;/</code>: 5 WebP, <code>maestros/</code>, <code>reporte.json</code></td><td><span class="chip ok">Implementada</span></td></tr>
+              <tr><td class="nowrap"><a href="#etapa-3">3 · Revisar</a></td><td>Una persona aprueba o rechaza cada vista</td><td><code>salida/</code>, alertas, originales</td><td><code>revision.json</code> (propuesto)</td><td><span class="chip todo">Por definir</span></td></tr>
+              <tr><td class="nowrap"><a href="#etapa-4">4 · Publicar</a></td><td>Sube cada imagen una vez por tienda y la asocia a las N fichas de su combinación</td><td>Vistas aprobadas, token de cada tienda</td><td>Fichas actualizadas</td><td><span class="chip todo">Por definir</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- POR DEFECTO -->
+      <section id="por-defecto">
+        <h2>Qué pasa por defecto</h2>
+        <p>Con el <code>config.toml</code> del repo, sin cambiar nada:</p>
+        <ul class="hechos">
+          <li><strong>Generar</strong> pide la Frontal con la pantalla en verde croma <span class="croma" aria-hidden="true"></span> <code>#00FF00</code>, porque <code>pantalla.variantes</code> incluye <code>"wallpaper"</code>. La Lateral y la Trasera se piden igual que antes.</li>
+          <li><strong>Estandarizar</strong> deja 5 imágenes por producto, en este orden de galería:
+            <ol class="galeria" aria-label="Orden de galería">
+              <li>Portada</li>
+              <li>Lateral</li>
+              <li>Frontal <span class="muted">(apagada)</span></li>
+              <li class="nueva">Frontal-Wallpaper</li>
+              <li>Trasera</li>
+            </ol>
+          </li>
+          <li><strong>La Portada</strong> usa la Frontal apagada, con la trasera a la izquierda y detrás. El solape es <strong>0,1667</strong>: la frontal tapa 1/6 de su propio ancho, así que de la trasera se ve 5/6, como en la referencia de estilo. No hay desfase vertical.</li>
+          <li><strong>El wallpaper</strong> se busca en <code>estilo/wallpapers/</code>, que hoy no tiene imágenes. Sin wallpaper, la Frontal-Wallpaper sale con ✗ y el comando termina con código 1. Las otras 4 imágenes se guardan igual.</li>
+          <li><strong>Las Frontales generadas antes del cambio</strong> tienen la pantalla negra, sin croma. Salen como Frontal, con la alerta <code>SIN_PANTALLA_CROMA</code>, y sin Frontal-Wallpaper hasta que se regeneren (~US$0,06 por producto).</li>
+        </ul>
+        <p class="code-label">Consola real · iPhone 17 Pro Naranjo, con su Frontal generada antes del cambio</p>
+        <pre><span class="p">$</span> imgprod estandarizar generadas/iPhone-17-Pro-Naranjo
+Estandarizando 3 imágenes → salida/
+  <span class="t-warn">⚠</span> iPhone-17-Pro-Naranjo · Frontal  ×0.67 · 11.3 KB
+      SIN_PANTALLA_CROMA: la frontal no trae la pantalla en color croma (#00FF00): se usa tal cual como Frontal (revisar que esté apagada) y no se puede armar la Frontal-Wallpaper
+  <span class="t-err">✗</span> iPhone-17-Pro-Naranjo · Frontal-Wallpaper: la frontal no trae la pantalla en color croma (#00FF00): regenerarla; el prompt la pide así cuando pantalla.variantes incluye "wallpaper"
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Lateral  ×0.64 · 9.2 KB
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Trasera  ×0.65 · 26.4 KB
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Portada (compuesta)  ×0.67 · 30.8 KB
+
+5 imágenes de salida: 3 sin alertas, 1 con alertas, 1 con error. Detalle en salida/&lt;producto&gt;/reporte.json</pre>
+        <figure>
+          <div class="foto"><img src="img/estandarizar-real.jpg" alt="Arriba, las tres vistas que entregó la IA para un iPhone 17 Pro naranjo, sobre fondo transparente: trasera, frontal con la pantalla apagada y lateral. Abajo, las cuatro imágenes finales en 1000 por 1000: Portada con la trasera y la frontal superpuestas, Lateral, Frontal y Trasera, todas con el teléfono del mismo alto, centrado y con una sombra suave." width="1110" height="670" loading="lazy"></div>
+          <figcaption>Salidas reales del iPhone 17 Pro Naranjo. Arriba, lo que entregó la IA (PNG transparente, 1024 × 1536). Abajo, lo que deja <code>imgprod estandarizar</code>: 1000 × 1000 WebP de máx. 50 KB, con el teléfono a 900 px de alto. Esta Frontal se generó antes del cambio, sin croma, así que no tiene Frontal-Wallpaper.</figcaption>
+        </figure>
+      </section>
+
+      <!-- USO -->
+      <section id="uso">
+        <h2>Cómo se usa</h2>
+        <pre>imgprod generar "muestras/originales/iPhone 12 Azul.webp"   <span class="c"># genera las 3 vistas (pide confirmación antes de gastar) y las estandariza</span>
+imgprod estandarizar generadas/                              <span class="c"># solo estandariza: no llama a la API</span>
+imgprod portada --solape 0.2,0.3,0.4                         <span class="c"># hoja para comparar solapes: no cambia ninguna imagen</span>
+imgprod portada                                              <span class="c"># vuelve a componer la Portada con [portada] de config.toml</span></pre>
+        <p>Los comandos se corren desde la carpeta del proyecto, con el entorno activo. Los parámetros están en <code>config.toml</code>, y cada comando acepta <code>-c</code> para usar otro archivo. Todos terminan con código 0 si todo salió bien, 1 si alguna imagen tuvo error (o si se canceló la generación) y 2 si la configuración es inválida o faltan archivos. Las alertas no cambian el código.</p>
+
+        <h3>Tener la Frontal con wallpaper</h3>
+        <ol class="pasos">
+          <li><div><strong>Deja el wallpaper en <code>estilo/wallpapers/</code></strong><span class="muted">Con <code>_default.jpg</code> alcanza para todos los productos. Para uno por modelo o por color, ver <a href="#wallpaper">dónde se busca</a>. Conviene vertical, de al menos 1290 × 2796 px, y con derechos de uso comercial.</span></div></li>
+          <li><div><strong>Genera la Frontal con croma</strong><span class="muted"><code>imgprod generar</code> ya la pide así. Para regenerar solo la Frontal de productos ya generados, pon <code>vistas = ["Frontal"]</code> en <code>[generar]</code>: es una llamada por producto, ~US$0,06. Antes de gastar muestra el costo y pide confirmación.</span></div></li>
+          <li><div><strong>Estandariza</strong><span class="muted"><code>imgprod estandarizar generadas/</code> deja <code>…-Frontal.webp</code> (apagada) y <code>…-Frontal-Wallpaper.webp</code>. <code>imgprod generar</code> lo hace solo al terminar.</span></div></li>
+          <li><div><strong>Opcional: la Portada con wallpaper</strong><span class="muted">Pon <code>frontal = "wallpaper"</code> en <code>[portada]</code> y corre <code>imgprod portada</code>. Toma segundos: no vuelve a generar ni a quitar el fondo.</span></div></li>
+        </ol>
+        <p class="code-label">Consola real · la misma Frontal con croma simulado, con pantalla.wallpapers apuntando a un wallpaper de ejemplo</p>
+        <pre><span class="p">$</span> imgprod estandarizar generadas/iPhone-17-Pro-Naranjo
+Estandarizando 3 imágenes → salida/
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Frontal  ×0.67 · 12 KB
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Frontal-Wallpaper (wallpaper ejemplo-reuse.jpg)  ×0.67 · 17.4 KB
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Lateral  ×0.64 · 9.2 KB
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Trasera  ×0.65 · 26.4 KB
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Portada (compuesta)  ×0.67 · 31.2 KB
+
+5 imágenes de salida: 5 sin alertas, 0 con alertas, 0 con error. Detalle en salida/&lt;producto&gt;/reporte.json
+
+<span class="c"># con frontal = "wallpaper" en [portada]:</span>
+<span class="p">$</span> imgprod portada
+Componiendo la Portada de 1 producto (solape 0.1667, desfase 0, frontal wallpaper)
+  <span class="t-ok">✓</span> iPhone-17-Pro-Naranjo · Portada (compuesta)  ×0.67 · 36.4 KB
+
+1 imagen: 1 ok, 0 con error.</pre>
+
+        <h3>Ajustar el solape de la Portada</h3>
+        <ol class="pasos">
+          <li><div><strong>Compara valores</strong><span class="muted"><code>imgprod portada --solape 0.2,0.3,0.4</code> arma <code>salida/muestras-portada.jpg</code>, con una fila por producto y una columna por valor. No cambia ninguna imagen.</span></div></li>
+          <li><div><strong>Elige uno</strong><span class="muted">Ponlo como <code>solape</code> en <code>[portada]</code> de <code>config.toml</code>.</span></div></li>
+          <li><div><strong>Aplícalo</strong><span class="muted"><code>imgprod portada</code> recompone la Portada de todos los productos de <code>salida/</code> en segundos, con los recortes de <code>maestros/</code>. Las próximas corridas de <code>estandarizar</code> y <code>generar</code> usan el mismo valor.</span></div></li>
+        </ol>
+        <p class="code-label">Consola real</p>
+        <pre><span class="p">$</span> imgprod portada --solape 0.2,0.3
+Hoja con 1 producto × 2 solapes → salida/muestras-portada.jpg
+Elige un valor, ponlo en [portada] solape de config.toml y corre imgprod portada para aplicarlo.</pre>
+
+        <h3>Elegir qué Frontales salen</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th><code>pantalla.variantes</code></th><th>Qué sale</th><th>Qué se le pide a la IA</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap"><code>["apagada", "wallpaper"]</code> (default)</td><td>Frontal y Frontal-Wallpaper</td><td>Pantalla croma</td></tr>
+              <tr><td class="nowrap"><code>["apagada"]</code></td><td>Solo la Frontal, como antes del cambio. No hace falta wallpaper</td><td>Pantalla apagada</td></tr>
+              <tr><td class="nowrap"><code>["wallpaper"]</code></td><td>Solo la Frontal-Wallpaper. Pide también <code>portada.frontal = "wallpaper"</code>: la configuración valida que la Frontal de la Portada esté entre las variantes</td><td>Pantalla croma</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CONVENCIONES -->
+      <section id="convenciones">
+        <h2>Convenciones</h2>
+        <p>Son el contrato entre etapas: si se respetan, cada módulo puede cambiar por dentro sin romper a los demás.</p>
+        <pre>imagenes-producto/
+├── config.toml                  <span class="c"># parámetros; los defaults están en src/imagenes_producto/config.py</span>
+├── estilo/                      <span class="c"># receta fija de generación; se versiona</span>
+│   ├── prompts/                 <span class="c"># comun.md + lateral.md · frontal.md · trasera.md + pantalla-croma.md · pantalla-apagada.md</span>
+│   ├── referencias/             <span class="c"># una imagen de estilo por vista: *-Lateral, *-Frontal, *-Trasera</span>
+│   ├── rasgos.toml              <span class="c"># rasgos clave por modelo que se agregan al prompt (vacío por ahora)</span>
+│   └── wallpapers/              <span class="c"># &lt;producto&gt;.jpg · &lt;modelo&gt;.jpg · _default.jpg (vacía por ahora)</span>
+├── generadas/&lt;producto&gt;/        <span class="c"># etapa 1: &lt;Vista&gt;.png + &lt;Vista&gt;.json (no se versiona)</span>
+├── salida/&lt;producto&gt;/           <span class="c"># etapa 2: 5 WebP + maestros/ + reporte.json (no se versiona)</span>
+├── docs/                        <span class="c"># pipeline.html (esta página) y referencia.md (brief para otra IA)</span>
+├── src/imagenes_producto/       <span class="c"># cli · config · generar · estandarizar · pantalla · fondo · imagen</span>
+└── tests/                       <span class="c"># test_generar · test_estandarizar · test_pantalla</span></pre>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Elemento</th><th>Regla</th><th>Ejemplo</th></tr></thead>
+            <tbody>
+              <tr><td>Original</td><td><code>&lt;Modelo&gt; &lt;Color&gt;.&lt;ext&gt;</code>; el color es la última palabra</td><td><code>iPhone 12 Pro Plata.webp</code></td></tr>
+              <tr><td>Producto</td><td>Modelo y color, con guiones</td><td><code>iPhone-12-Pro-Plata</code></td></tr>
+              <tr><td>Modelo</td><td>El producto sin la última palabra. Sirve para buscar el wallpaper</td><td><code>iPhone-12-Pro</code></td></tr>
+              <tr><td>Vistas de la IA</td><td>Lateral, Frontal y Trasera (<code>config.VISTAS_GENERADAS</code>)</td><td><code>generadas/iPhone-12-Pro-Plata/Frontal.png</code></td></tr>
+              <tr><td>Vistas finales</td><td>En orden de galería: Portada, Lateral, Frontal, Frontal-Wallpaper, Trasera (<code>config.VISTAS</code>)</td><td>—</td></tr>
+              <tr><td>Variantes de pantalla</td><td><code>apagada</code> da la vista Frontal; <code>wallpaper</code>, la Frontal-Wallpaper</td><td>—</td></tr>
+              <tr><td>Nombre final</td><td><code>salida.nombre = "{producto}-Version-Final-{vista}"</code></td><td><code>iPhone-12-Pro-Plata-Version-Final-Frontal-Wallpaper.webp</code></td></tr>
+              <tr><td>Entrada de estandarizar</td><td>El nombre final o la estructura <code>&lt;producto&gt;/&lt;vista&gt;.&lt;ext&gt;</code></td><td><code>iPhone-12-Azul/frontal.png</code></td></tr>
+              <tr><td>Recortes maestros</td><td>Transparentes y sin escalar. La Portada se compone desde aquí</td><td><code>salida/iPhone-12-Azul/maestros/Trasera.png</code></td></tr>
+              <tr><td>Reporte</td><td>Una entrada por vista: entrada, final, maestro, medidas, caja, escala, método de fondo, wallpaper, calidad, peso, alertas y error</td><td><code>salida/iPhone-12-Azul/reporte.json</code></td></tr>
+              <tr><td>Imágenes fijas</td><td>QR de Subtel y sellos. No son parte del pipeline: van al final de la galería (etapa 4)</td><td><code>Subtel-QR*</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ETAPA 1 -->
+      <section id="etapa-1">
+        <header class="stage-head">
+          <span class="stage-num">Etapa 1</span>
+          <h2>Generar</h2>
+          <span class="chip ok">Implementada · generar.py</span>
+        </header>
+        <p>Por cada original y cada vista (Lateral, Frontal, Trasera), hace una llamada a la API de OpenAI y guarda lo que devuelve sin tocarlo. La Portada y las variantes de la Frontal no se le piden a la IA: las arma la etapa 2. Al terminar, estandariza lo generado, salvo con <code>--solo-generar</code>.</p>
+        <div class="io">
+          <div>
+            <h4>Entra</h4>
+            <ul>
+              <li><span class="mono">&lt;Modelo&gt; &lt;Color&gt;.&lt;ext&gt;</span><span class="desc">archivos o carpetas de originales; png, jpg o webp</span></li>
+              <li><span class="mono">estilo/prompts/ · estilo/referencias/ · estilo/rasgos.toml</span><span class="desc">la receta fija de generación</span></li>
+              <li><span class="mono">OPENAI_API_KEY</span><span class="desc">en <code>.env</code>, nunca en el código</span></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Sale</h4>
+            <ul>
+              <li><span class="mono">generadas/&lt;producto&gt;/&lt;Vista&gt;.png</span><span class="desc">solo el teléfono, con fondo transparente y sin sombra; la Frontal, con la pantalla en croma. Las candidatas extra van como <code>&lt;Vista&gt;-2.png</code></span></li>
+              <li><span class="mono">generadas/&lt;producto&gt;/&lt;Vista&gt;.json</span><span class="desc">modelo de IA, calidad, medidas, tokens, costo real, segundos, fecha y el prompt completo</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Qué se envía en cada llamada</h3>
+        <ul>
+          <li><strong>El original</strong>, recortado a su contenido con 3 % de margen, en sRGB y PNG, con un lado mayor de máx. 2048 px. Si el equipo ocupa menos de 800 px, alerta <code>ORIGINAL_CHICO</code>.</li>
+          <li><strong>La referencia de estilo</strong> de esa vista: exactamente una imagen <code>*-&lt;Vista&gt;</code> en <code>estilo/referencias/</code>.</li>
+          <li><strong>El prompt</strong>: <code>comun.md</code> más el archivo de la vista, con las variables reemplazadas.</li>
+        </ul>
+        <p class="code-label">Llamada de ClienteOpenAI</p>
+        <pre>client.images.edit(
+    model="gpt-image-2.5-sunburst",            <span class="c"># generar.modelo</span>
+    image=[original, referencia],              <span class="c"># PNG en sRGB</span>
+    prompt=prompt,                             <span class="c"># comun.md + &lt;vista&gt;.md</span>
+    size="1024x1536",                          <span class="c"># generar.medidas</span>
+    quality="high",                            <span class="c"># generar.calidad</span>
+    background="transparent",                  <span class="c"># generar.fondo = "transparente"</span>
+    output_format="png",
+    n=1,                                       <span class="c"># generar.candidatos</span>
+)</pre>
+
+        <h3>Variables del prompt</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Variable</th><th>Se reemplaza por</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap"><code>{modelo}</code>, <code>{color}</code></td><td>Lo que dice el nombre del original</td></tr>
+              <tr><td class="nowrap"><code>{vista}</code></td><td>lateral, frontal o trasera</td></tr>
+              <tr><td class="nowrap"><code>{fondo}</code></td><td>"transparente" o "blanco liso (#FFFFFF), sin degradados", según <code>generar.fondo</code></td></tr>
+              <tr><td class="nowrap"><code>{rasgos}</code></td><td>Los rasgos del modelo en <code>rasgos.toml</code>, si hay</td></tr>
+              <tr><td class="nowrap"><code>{pantalla}</code></td><td>Solo en <code>frontal.md</code>: el texto de <code>pantalla-croma.md</code> si <code>pantalla.variantes</code> incluye <code>"wallpaper"</code>; si no, el de <code>pantalla-apagada.md</code>. Si falta y se pide wallpaper, <code>generar</code> se detiene antes de gastar</td></tr>
+              <tr><td class="nowrap"><code>{color_croma}</code></td><td>Solo en <code>pantalla-croma.md</code>: <code>pantalla.color_croma</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="code-label">estilo/prompts/pantalla-croma.md, con {color_croma} = #00FF00</p>
+        <pre class="prosa">Pantalla encendida y llena de un solo color plano, exactamente #00FF00, de borde a borde de la pantalla: sin wallpaper, hora, barra de estado, íconos, texto, reflejos ni degradados. El notch, la perforación o la Dynamic Island quedan negros, como en el equipo real. Ese color se reemplaza después por el wallpaper o por la pantalla apagada.</pre>
+        <p class="code-label">estilo/prompts/pantalla-apagada.md</p>
+        <pre class="prosa">Pantalla apagada: negra y uniforme, sin wallpaper, sin interfaz y sin reflejos fuertes.</pre>
+
+        <h3>Costo</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Alcance</th><th class="num">Estimado antes de gastar</th><th class="num">Real medido</th></tr></thead>
+            <tbody>
+              <tr><td>Una vista</td><td class="num">~US$0,071</td><td class="num">US$0,061–0,062</td></tr>
+              <tr><td>Un producto (3 vistas)</td><td class="num">~US$0,21</td><td class="num">~US$0,19</td></tr>
+              <tr><td>Solo la Frontal de un producto</td><td class="num">~US$0,07</td><td class="num">~US$0,06</td></tr>
+              <tr><td>Catálogo completo (183 × 3 = 549 vistas)</td><td class="num">~US$39</td><td class="num">~US$34</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted">Con <code>gpt-image-2.5-sunburst</code>, calidad high y 1024 × 1536; cada llamada tarda 24–35 s. El estimado suma US$0,041 de salida y US$0,03 de entrada por llamada. El costo real sale de los tokens que informa la API y queda en el <code>.json</code> de cada vista.</p>
+
+        <h3>Errores y confirmación</h3>
+        <ul>
+          <li><strong>Antes de gastar</strong> muestra cuántas imágenes va a generar y el costo estimado, y pide confirmación. Sin terminal interactiva no gasta: hay que pasar <code>--si</code>.</li>
+          <li><strong>Un error de una vista</strong> (pedido rechazado, respuesta sin imagen) queda registrado y el lote sigue. El cliente reintenta solo los límites de uso y los errores temporales, hasta 5 veces.</li>
+          <li><strong>Un error fatal</strong> detiene el lote: API key inválida, acceso denegado, falta una referencia o falta <code>{pantalla}</code> en <code>frontal.md</code>. Las referencias y <code>{pantalla}</code> se revisan antes de la primera llamada, así que esos dos errores no gastan.</li>
+        </ul>
+      </section>
+
+      <!-- ETAPA 2 -->
+      <section id="etapa-2">
+        <header class="stage-head">
+          <span class="stage-num">Etapa 2</span>
+          <h2>Estandarizar</h2>
+          <span class="chip ok">Implementada · estandarizar.py · pantalla.py</span>
+        </header>
+        <p>Deja cada vista en el lienzo estándar, con el teléfono del mismo alto y centrado. No redibuja el producto: solo recorta, escala y compone, así que la misma entrada da los mismos bytes de salida. De la Frontal saca sus variantes de pantalla y, con la Trasera, compone la Portada. Un error en una imagen queda en su resultado y no detiene el lote.</p>
+        <div class="io">
+          <div>
+            <h4>Entra</h4>
+            <ul>
+              <li><span class="mono">generadas/&lt;producto&gt;/&lt;vista&gt;.png</span><span class="desc">o <code>&lt;producto&gt;-Version-Final-&lt;Vista&gt;.&lt;ext&gt;</code>; png, jpg o webp; las carpetas se recorren</span></li>
+              <li><span class="mono">estilo/wallpapers/</span><span class="desc">para la Frontal-Wallpaper</span></li>
+              <li><span class="mono">config.toml</span><span class="desc"><code>[lienzo]</code>, <code>[producto]</code>, <code>[portada]</code>, <code>[pantalla]</code>, <code>[sombra]</code>, <code>[salida]</code>…</span></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Sale</h4>
+            <ul>
+              <li><span class="mono">salida/&lt;producto&gt;/&lt;producto&gt;-Version-Final-&lt;Vista&gt;.webp</span><span class="desc">las 5 vistas, 1000 × 1000, máx. 50 KB</span></li>
+              <li><span class="mono">salida/&lt;producto&gt;/maestros/&lt;Vista&gt;.png</span><span class="desc">recortes transparentes sin escalar: permiten recomponer sin volver a generar</span></li>
+              <li><span class="mono">salida/&lt;producto&gt;/reporte.json</span><span class="desc">medidas, escala, calidad, peso, wallpaper y alertas de cada vista</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Qué hace con cada imagen</h3>
+        <ol class="pasos">
+          <li><div><strong>Abre</strong><span class="muted">Aplica la rotación EXIF. Si trae un perfil de color que no es sRGB (el Display P3 de las fotos de iPhone), convierte a sRGB con LittleCMS: descartarlo sin convertir cambiaría los colores saturados.</span></div></li>
+          <li><div><strong>Quita el fondo</strong>
+            <ul>
+              <li>Si la imagen trae transparencia, como la que entrega OpenAI, usa ese alfa.</li>
+              <li>Si no, segmenta con rembg y el modelo BiRefNet (licencia MIT). La primera vez descarga 973 MB, y en CPU tarda ~30–50 s por imagen. El modelo que rembg trae por defecto no admite uso comercial.</li>
+            </ul></div></li>
+          <li><div><strong>Arma el recorte maestro</strong>
+            <ul>
+              <li>Borra las manchas menores al 0,5 % del objeto principal (<code>VARIOS_OBJETOS</code> si queda más de uno).</li>
+              <li>Deja el interior opaco. Si segmentó, rellena los huecos con el color del original (<code>HUECOS_RELLENADOS</code> si superan el 0,1 %).</li>
+              <li>Mide el contorno con alfa ≥ 128. <code>TOCA_BORDE</code> si queda a ≤2 px del borde de la entrada.</li>
+            </ul></div></li>
+          <li><div><strong>Lo pone en el lienzo</strong>
+            <ul>
+              <li>Escala para que el contorno mida 0,90 × 1000 = 900 px de alto, o menos si no cabe a lo ancho (<code>LIMITADO_POR_ANCHO</code>). <code>AMPLIACION</code> si hay que ampliar más de 1,10×.</li>
+              <li>Centra el contorno y agrega la sombra de contacto: la silueta aplastada contra el borde inferior y desenfocada, ajustada a las referencias.</li>
+            </ul></div></li>
+          <li><div><strong>Guarda</strong><span class="muted">WebP con la mayor calidad entre 60 y 90 que cumple 50 KB, por búsqueda binaria (<code>PESO_EXCEDIDO</code> si ni con 60 alcanza). Guarda también el maestro y actualiza <code>reporte.json</code>.</span></div></li>
+        </ol>
+
+        <figure>
+          <div class="diagram">
+            <svg viewBox="0 0 1000 350" role="img" aria-label="A la izquierda, el recorte maestro: el contorno del teléfono se mide con alfa mayor o igual a 128, y la sombra que traiga la IA se va con el fondo. A la derecha, el lienzo de 1000 por 1000: el teléfono se escala a 900 px de alto, el centro de su contorno va al centro del lienzo y se agrega una sombra de contacto.">
+              <defs>
+                <radialGradient id="sombraIA" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.34"></stop>
+                  <stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop>
+                </radialGradient>
+                <radialGradient id="sombraContacto" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="currentColor" stop-opacity="0.45"></stop>
+                  <stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop>
+                </radialGradient>
+              </defs>
+              <!-- Recorte maestro -->
+              <text class="d-title" x="20" y="28">Recorte maestro</text>
+              <ellipse cx="176" cy="306" rx="80" ry="13" fill="url(#sombraIA)"></ellipse>
+              <ellipse class="d-bbox-weak" cx="176" cy="306" rx="80" ry="13"></ellipse>
+              <rect class="d-phone" x="120" y="56" width="112" height="236" rx="18"></rect>
+              <rect class="d-bump" x="131" y="67" width="46" height="46" rx="11"></rect>
+              <circle class="d-lens" cx="143" cy="80" r="7"></circle>
+              <circle class="d-lens" cx="143" cy="100" r="7"></circle>
+              <circle class="d-lens" cx="164" cy="90" r="7"></circle>
+              <rect class="d-bbox" x="116" y="52" width="120" height="244" rx="3"></rect>
+              <line class="d-mark-line" x1="238" y1="80" x2="268" y2="80"></line>
+              <text class="d-strong mark" x="274" y="84">Contorno: alfa ≥ 128</text>
+              <text class="d-note" x="274" y="101">recorte.umbral_alfa</text>
+              <line class="d-weak-line" x1="258" y1="306" x2="268" y2="306"></line>
+              <text class="d-strong" x="274" y="302">Sombra de la IA, si la trae</text>
+              <text class="d-note" x="274" y="319">se va con el fondo</text>
+              <!-- Lienzo -->
+              <text class="d-title" x="520" y="28">Lienzo final</text>
+              <text class="d-note" x="560" y="44">márgenes de 50 px arriba y abajo</text>
+              <rect class="d-canvas" x="560" y="50" width="250" height="250"></rect>
+              <line class="d-guide" x1="560" y1="62.5" x2="810" y2="62.5"></line>
+              <line class="d-guide" x1="560" y1="287.5" x2="810" y2="287.5"></line>
+              <ellipse cx="685" cy="287" rx="58" ry="6" fill="url(#sombraContacto)"></ellipse>
+              <rect class="d-phone" x="631" y="62.5" width="108" height="225" rx="16"></rect>
+              <rect class="d-bump" x="640" y="71" width="40" height="40" rx="10"></rect>
+              <circle class="d-lens" cx="651" cy="82" r="6"></circle>
+              <circle class="d-lens" cx="651" cy="100" r="6"></circle>
+              <circle class="d-lens" cx="669" cy="91" r="6"></circle>
+              <line class="d-cross" x1="677" y1="175" x2="693" y2="175"></line>
+              <line class="d-cross" x1="685" y1="167" x2="685" y2="183"></line>
+              <line class="d-dim" x1="760" y1="62.5" x2="760" y2="287.5"></line>
+              <line class="d-dim" x1="754" y1="62.5" x2="766" y2="62.5"></line>
+              <line class="d-dim" x1="754" y1="287.5" x2="766" y2="287.5"></line>
+              <line class="d-weak-line" x1="764" y1="175" x2="822" y2="175"></line>
+              <line class="d-weak-line" x1="745" y1="296" x2="822" y2="296"></line>
+              <text class="d-strong" x="828" y="70">Lienzo 1000 × 1000</text>
+              <text class="d-note" x="828" y="87">fondo #FFFFFF</text>
+              <text class="d-strong" x="828" y="171">Alto 0,90 × 1000</text>
+              <text class="d-note" x="828" y="188">= 900 px</text>
+              <text class="d-strong" x="828" y="292">Sombra de contacto</text>
+              <text class="d-note" x="828" y="309">opacidad 0,24</text>
+              <text class="d-label" x="685" y="330" text-anchor="middle">centro del contorno = centro del lienzo</text>
+            </svg>
+          </div>
+          <figcaption>El contorno se mide sobre el recorte sin fondo, así que la sombra que agregue la IA no achica ni descentra el teléfono. Después el alto queda en 900 px y el centro del contorno va al centro del lienzo. La misma regla vale para la Portada, con el par entero.</figcaption>
+        </figure>
+
+        <h3>Lo que queda en <code>salida/</code></h3>
+        <pre>salida/iPhone-12-Azul/
+├── iPhone-12-Azul-Version-Final-Portada.webp             <span class="c"># compuesta con la Trasera y la Frontal</span>
+├── iPhone-12-Azul-Version-Final-Lateral.webp
+├── iPhone-12-Azul-Version-Final-Frontal.webp             <span class="c"># pantalla apagada</span>
+├── iPhone-12-Azul-Version-Final-Frontal-Wallpaper.webp   <span class="c"># la misma Frontal, con wallpaper</span>
+├── iPhone-12-Azul-Version-Final-Trasera.webp
+├── maestros/                                           <span class="c"># Portada.png, Lateral.png, Frontal.png, Frontal-Wallpaper.png, Trasera.png</span>
+└── reporte.json</pre>
+
+        <h3>Resultados de las pruebas</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Prueba</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Suite de <code>pytest</code></td><td>54 pruebas en verde en macOS (28 antes del cambio), también con <code>-W error::DeprecationWarning</code>. GitHub Actions las corre en Linux y Windows con cada cambio en main</td></tr>
+              <tr><td>Regresión con datos reales (iPhone 13 Azul, 17 Pro Naranjo)</td><td>Lateral, Frontal y Trasera idénticas byte a byte a la versión anterior</td></tr>
+              <tr><td>Variantes sobre la Frontal real del 17 Pro, con croma simulado</td><td>5 imágenes sin alertas; Dynamic Island intacta; 0 píxeles croma restantes</td></tr>
+              <tr><td>Solape</td><td>Lo visible de la trasera es 1 − solape (±1 %) con 0, 1/6, 0,4 y −0,1; espejado y desfase correctos</td></tr>
+              <tr><td>Hoja de solapes 0,2–0,5 en 4 productos reales</td><td>Hasta 0,3 se ven completos las cámaras y el logo en los cuatro; desde 0,4 la frontal tapa parte del logo</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- FRONTAL -->
+      <section id="frontal">
+        <header class="stage-head">
+          <span class="stage-num">Etapa 2 · Frontal</span>
+          <h2>Frontal con y sin wallpaper</h2>
+        </header>
+        <p>La IA genera <strong>una sola Frontal</strong>, con la pantalla llena de color croma. El script detecta ese color dentro del recorte maestro y reemplaza solo esos píxeles. Así las dos variantes tienen exactamente la misma geometría, y el notch o la Dynamic Island quedan como los dibujó la IA.</p>
+        <figure>
+          <div class="foto"><img src="img/pantalla-variantes.jpg" alt="Cuatro imágenes del iPhone 17 Pro naranjo: la frontal con la pantalla verde croma sobre fondo transparente, la Frontal con la pantalla apagada, la Frontal-Wallpaper con un fondo azul difuso y la Portada con la trasera y la frontal con wallpaper." width="1190" height="362" loading="lazy"></div>
+          <figcaption>La Frontal real del iPhone 17 Pro Naranjo, con el croma simulado sobre su pantalla. De esa única imagen salen la Frontal apagada, la Frontal-Wallpaper y, con <code>portada.frontal = "wallpaper"</code>, la Portada con wallpaper.</figcaption>
+        </figure>
+
+        <h3>Cómo se detecta y se reemplaza la pantalla</h3>
+        <ol class="pasos">
+          <li><div><strong>Busca la pantalla por tono</strong><span class="muted">Un píxel es pantalla si su tono está a menos de 18° del croma (nada sobre 40°, con rampa entremedio) y tiene saturación y brillo suficientes, dentro del teléfono. Se toma la zona continua más grande. Medir por tono, y no por distancia de color, tolera el degradado o la viñeta que agregue la IA.</span></div></li>
+          <li><div><strong>Cuenta los huecos</strong>
+            <ul>
+              <li>Los menores al 0,1 % de la pantalla son ruido y se rellenan.</li>
+              <li>Los mayores son elementos. La Dynamic Island cuenta 1; más de 1 significa que la IA dibujó hora, íconos o texto, y da <code>PANTALLA_CON_ELEMENTOS</code>.</li>
+              <li>El notch no es hueco, porque toca el marco.</li>
+            </ul></div></li>
+          <li><div><strong>Verifica la cobertura</strong><span class="muted">Si la pantalla cubre menos del 40 % del teléfono, la Frontal no trae croma.</span></div></li>
+          <li><div><strong>Reemplaza solo la pantalla</strong>
+            <ul>
+              <li>Borde suave de 2 px. En esa banda se quita el tinte verde que se cuela en el marco y en la isla, para que no quede un halo.</li>
+              <li><em>Apagada</em>: <code>#0B0B0F</code> con un reflejo diagonal suave (<code>reflejo_apagada</code> = 0,06).</li>
+              <li><em>Wallpaper</em>: se escala para cubrir la pantalla sin deformarse, centrado o anclado arriba. Las esquinas redondeadas y la isla salen de la máscara.</li>
+              <li>El alfa y el marco no cambian.</li>
+            </ul></div></li>
+          <li><div><strong>Compone cada variante</strong><span class="muted">En el lienzo, con la misma escala y el mismo centro que la Frontal.</span></div></li>
+        </ol>
+
+        <h3>Qué pasa en cada caso</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Caso</th><th>Frontal</th><th>Frontal-Wallpaper</th></tr></thead>
+            <tbody>
+              <tr><td>Con croma y con wallpaper</td><td><span class="t-ok">✓</span> Se arma apagada</td><td><span class="t-ok">✓</span> Se arma; el reporte registra qué wallpaper se usó</td></tr>
+              <tr><td>Con croma, sin wallpaper</td><td><span class="t-ok">✓</span> Se arma apagada</td><td><span class="t-err">✗</span> "no hay wallpaper para &lt;producto&gt;"; el comando termina con código 1</td></tr>
+              <tr><td>Sin croma, con <code>"wallpaper"</code> en las variantes</td><td><span class="t-warn">⚠</span> Tal cual, con <code>SIN_PANTALLA_CROMA</code></td><td><span class="t-err">✗</span> "la frontal no trae la pantalla en color croma"; código 1</td></tr>
+              <tr><td>Sin croma, con <code>variantes = ["apagada"]</code></td><td><span class="t-ok">✓</span> Tal cual, sin alerta</td><td>No se pide</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="wallpaper">Dónde se busca el wallpaper</h3>
+        <p>En <code>pantalla.wallpapers</code> (default <code>estilo/wallpapers/</code>), en este orden:</p>
+        <ol>
+          <li><code>&lt;producto&gt;.jpg</code>: solo ese color, p. ej. <code>iPhone-15-Pro-Azul.jpg</code>.</li>
+          <li><code>&lt;modelo&gt;.jpg</code>: todos los colores del modelo, p. ej. <code>iPhone-15-Pro.jpg</code>.</li>
+          <li><code>_default.jpg</code>: todo lo demás.</li>
+        </ol>
+        <p>También sirven <code>.png</code> y <code>.webp</code>. Si <code>pantalla.wallpapers</code> es un archivo, se usa para todos los productos. La carpeta se versiona como el resto de <code>estilo/</code>: cambiar un wallpaper cambia las fichas de todo el catálogo.</p>
+
+        <h3>Parámetros</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>pantalla.*</th><th>Default</th><th>Qué hace</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap"><code>variantes</code></td><td class="nowrap"><code>["apagada", "wallpaper"]</code></td><td>Qué Frontales salen (ver <a href="#uso">Cómo se usa</a>)</td></tr>
+              <tr><td class="nowrap"><code>color_croma</code></td><td><code>"#00FF00"</code></td><td>Color plano que la IA pone en la pantalla y el script reemplaza. Tiene que ser saturado</td></tr>
+              <tr><td class="nowrap"><code>tolerancia_tono</code></td><td><code>[18, 40]</code></td><td>Grados de tono: hasta el primero es croma; desde el segundo, no. Súbelos si la IA entrega un verde menos puro</td></tr>
+              <tr><td class="nowrap"><code>wallpapers</code></td><td><code>"estilo/wallpapers"</code></td><td>Carpeta donde se buscan, o un archivo para usar el mismo en todos</td></tr>
+              <tr><td class="nowrap"><code>ancla_wallpaper</code></td><td><code>"centro"</code></td><td>Si el wallpaper no calza con la pantalla, qué parte se conserva: <code>"centro"</code> o <code>"arriba"</code></td></tr>
+              <tr><td class="nowrap"><code>color_apagada</code></td><td><code>"#0B0B0F"</code></td><td>Color de la pantalla apagada que se arma desde el croma</td></tr>
+              <tr><td class="nowrap"><code>reflejo_apagada</code></td><td class="num">0,06</td><td>Reflejo diagonal de la pantalla apagada: 0 = negro plano</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PORTADA -->
+      <section id="portada">
+        <header class="stage-head">
+          <span class="stage-num">Etapa 2 · Portada</span>
+          <h2>Portada con solape configurable</h2>
+        </header>
+        <p>La Portada no la genera la IA: se compone con los recortes maestros de la Trasera y de la Frontal. Los dos se llevan al mismo alto (se reduce el más alto, nunca se amplía) y se ubican según <code>[portada]</code>. Después el par pasa por el mismo lienzo que las demás vistas: 900 px de alto, centrado y con sombra de contacto.</p>
+        <figure>
+          <div class="diagram">
+            <svg viewBox="0 0 1000 386" role="img" aria-label="Portada por defecto: la trasera atrás y a la izquierda, la frontal adelante y a la derecha. La frontal tapa un sexto de su propio ancho, que es el solape 0,1667, así que de la trasera se ve cinco sextos. Los bordes superiores quedan alineados porque el desfase vertical es 0.">
+              <!-- Trasera (atrás) -->
+              <rect class="d-phone" x="330" y="60" width="150" height="260" rx="22"></rect>
+              <rect class="d-bump" x="342" y="72" width="58" height="58" rx="14"></rect>
+              <circle class="d-lens" cx="357" cy="88" r="8"></circle>
+              <circle class="d-lens" cx="357" cy="114" r="8"></circle>
+              <circle class="d-lens" cx="383" cy="101" r="8"></circle>
+              <!-- Frontal (adelante) -->
+              <rect class="d-phone" x="455" y="60" width="150" height="260" rx="22"></rect>
+              <rect class="d-screen" x="464" y="69" width="132" height="242" rx="15"></rect>
+              <rect class="d-ink" x="511" y="78" width="38" height="11" rx="5.5"></rect>
+              <!-- Solape -->
+              <line class="d-guide" x1="455" y1="50" x2="455" y2="60"></line>
+              <line class="d-guide" x1="480" y1="50" x2="480" y2="60"></line>
+              <line class="d-dim" x1="455" y1="44" x2="480" y2="44"></line>
+              <line class="d-dim" x1="455" y1="38" x2="455" y2="50"></line>
+              <line class="d-dim" x1="480" y1="38" x2="480" y2="50"></line>
+              <text class="d-strong mark" x="467" y="28" text-anchor="middle">solape × ancho de la frontal</text>
+              <!-- Abajo: lo visible de la trasera y el ancho de la frontal -->
+              <line class="d-guide" x1="330" y1="320" x2="330" y2="332"></line>
+              <line class="d-guide" x1="455" y1="320" x2="455" y2="332"></line>
+              <line class="d-guide" x1="605" y1="320" x2="605" y2="332"></line>
+              <line class="d-dim" x1="330" y1="338" x2="605" y2="338"></line>
+              <line class="d-dim" x1="330" y1="332" x2="330" y2="344"></line>
+              <line class="d-dim" x1="455" y1="332" x2="455" y2="344"></line>
+              <line class="d-dim" x1="605" y1="332" x2="605" y2="344"></line>
+              <text class="d-note" x="392" y="360" text-anchor="middle">se ve 5/6</text>
+              <text class="d-note" x="392" y="376" text-anchor="middle">= 1 − solape</text>
+              <text class="d-note" x="530" y="360" text-anchor="middle">ancho de la frontal</text>
+              <!-- Desfase -->
+              <line class="d-guide" x1="605" y1="60" x2="642" y2="60"></line>
+              <text class="d-strong" x="648" y="58">desfase_vertical = 0</text>
+              <text class="d-note" x="648" y="75">positivo = la frontal más abajo</text>
+              <!-- Rótulos -->
+              <line class="d-weak-line" x1="316" y1="196" x2="330" y2="196"></line>
+              <text class="d-strong" x="310" y="192" text-anchor="end">Trasera · atrás</text>
+              <text class="d-note" x="310" y="209" text-anchor="end">lado_trasera = izquierda</text>
+              <line class="d-weak-line" x1="605" y1="196" x2="624" y2="196"></line>
+              <text class="d-strong" x="630" y="192">Frontal · adelante</text>
+              <text class="d-note" x="630" y="209">adelante = frontal</text>
+              <text class="d-note" x="630" y="226">frontal = apagada (o wallpaper)</text>
+            </svg>
+          </div>
+          <figcaption>Los valores por defecto. El solape se mide sobre el teléfono de adelante: 0 = se tocan, 0,1667 = tapa 1/6 de su ancho, negativo = separados. Lado, orden y desfase se configuran por separado.</figcaption>
+        </figure>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>portada.*</th><th>Default</th><th>Valores</th><th>Qué hace</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap"><code>solape</code></td><td class="num">0,1667</td><td class="nowrap">−0,5 a 0,95</td><td>Fracción del ancho del teléfono de adelante que tapa al de atrás. Con 1/6, de la trasera se ve 5/6, como en la referencia</td></tr>
+              <tr><td class="nowrap"><code>desfase_vertical</code></td><td class="num">0</td><td class="nowrap">−0,5 a 0,5</td><td>Fracción del alto: positivo baja la frontal respecto de la trasera. El par entero se lleva a 900 px, así que con más desfase cada teléfono queda más chico</td></tr>
+              <tr><td class="nowrap"><code>adelante</code></td><td>frontal</td><td>frontal · trasera</td><td>Cuál queda encima</td></tr>
+              <tr><td class="nowrap"><code>lado_trasera</code></td><td>izquierda</td><td>izquierda · derecha</td><td>De qué lado queda la trasera</td></tr>
+              <tr><td class="nowrap"><code>frontal</code></td><td>apagada</td><td>apagada · wallpaper</td><td>Qué Frontal va en la Portada. Tiene que estar en <code>pantalla.variantes</code>. Si esa no está en disco, usa la otra y alerta <code>PORTADA_CON_OTRA_FRONTAL</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figure>
+          <div class="foto angosta"><img src="img/muestras-portada.jpg" alt="Hoja de muestras: cuatro productos (iPhone 12 blanco, 12 Pro plata, 13 azul y 17 Pro naranjo), cada uno con la Portada armada a solape 0,2, 0,3, 0,4 y 0,5. A mayor solape, la frontal tapa más de la trasera." width="1360" height="1464" loading="lazy"></div>
+          <figcaption>La hoja de <code>imgprod portada --solape 0.2,0.3,0.4,0.5</code> sobre los productos generados. Hasta 0,3 se ven completos las cámaras y el logo en los cuatro; desde 0,4 la frontal tapa parte del logo.</figcaption>
+        </figure>
+        <p><code>imgprod portada</code> recompone la Portada de cada producto de <code>salida/</code> (o de las carpetas que le pases) con sus maestros, así que un cambio de <code>[portada]</code> se aplica en segundos. Con <code>--solape</code> solo arma la hoja; los valores se validan igual que en <code>config.toml</code>. Termina con código 2 si no encuentra productos con maestros.</p>
+        <div class="callout nota">
+          <strong>Cambio respecto de la versión anterior</strong>
+          <span>Antes, <code>portada.visible_trasera</code> fijaba cuánto se veía de la trasera. Ahora <code>solape</code> fija cuánto la tapa la frontal. Con los dos teléfonos del mismo ancho es lo mismo: <code>solape = 1 − visible_trasera</code>, y 5/6 pasa a 0,1667. Un <code>config.toml</code> con la clave vieja da un error que explica el cambio. En las generadas reales, la IA dibujó la trasera y la frontal con ~2 % de diferencia de ancho, así que la frontal queda 8–9 px (de 1000) corrida respecto de la Portada anterior.</span>
+        </div>
+      </section>
+
+      <!-- ETAPA 3 -->
+      <section id="etapa-3">
+        <header class="stage-head">
+          <span class="stage-num">Etapa 3</span>
+          <h2>Revisar</h2>
+          <span class="chip todo">Por definir · diseño propuesto</span>
+        </header>
+        <p>Una persona aprueba cada vista antes de publicar. En reacondicionados, una foto con cámaras o color equivocados termina en un reclamo de "no es lo que compré". Las alertas de <code>reporte.json</code> ya marcan lo sospechoso; faltan la hoja de revisión y el registro.</p>
+        <div class="io">
+          <div>
+            <h4>Entra</h4>
+            <ul>
+              <li><span class="mono">salida/&lt;producto&gt;/</span><span class="desc">las 5 vistas de cada producto</span></li>
+              <li><span class="mono">salida/&lt;producto&gt;/reporte.json</span><span class="desc">las vistas con alertas se revisan sí o sí</span></li>
+              <li><span class="mono">originales</span><span class="desc">para comparar</span></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Sale (propuesto)</h4>
+            <ul>
+              <li><span class="mono">imgprod revisar [salida/]</span><span class="desc">hoja de contacto: una fila por producto, las vistas en orden de galería y las alertas en rojo</span></li>
+              <li><span class="mono">salida/&lt;producto&gt;/revision.json</span><span class="desc">por vista: estado (aprobada | rechazada), motivo y nota</span></li>
+              <li><span class="mono">motivo</span><span class="desc">modelo · cámaras · color · logo · botones · pantalla · texto o artefactos · recorte · otro</span></li>
+            </ul>
+          </div>
+        </div>
+        <h3>Qué revisar en cada imagen</h3>
+        <ul>
+          <li>Modelo correcto: cantidad y disposición de cámaras, flash y LiDAR.</li>
+          <li>Color igual al original, y logo con forma y posición correctas.</li>
+          <li>Botones: lado, cantidad, botón de acción y Control de Cámara en 16/17.</li>
+          <li>Frontales: isla o notch intactos, wallpaper bien encuadrado, sin restos de verde.</li>
+          <li>Portada: solape y orden correctos.</li>
+          <li>Teléfono completo, sin texto ni marcas, sin manos ni accesorios.</li>
+        </ul>
+        <p>Una combinación se publica solo con todas sus vistas aprobadas. Una vista de IA rechazada se regenera con <code>[generar] vistas = [...]</code> (o con un filtro <code>--vista</code> nuevo). Una Frontal o Frontal-Wallpaper rechazada regenera la Frontal croma. Una Portada mal compuesta se corrige en <code>[portada]</code> y con <code>imgprod portada</code>, sin volver a la IA.</p>
+      </section>
+
+      <!-- ETAPA 4 -->
+      <section id="etapa-4">
+        <header class="stage-head">
+          <span class="stage-num">Etapa 4</span>
+          <h2>Publicar en Shopify</h2>
+          <span class="chip todo">Por definir · diseño propuesto</span>
+        </header>
+        <p>Sube cada imagen aprobada una sola vez por tienda y la asocia a todas las fichas de su combinación modelo + color; después ordena la galería y deja intactas las imágenes fijas. Hoy la misma imagen se sube una vez por ficha.</p>
+        <div class="io">
+          <div>
+            <h4>Entra</h4>
+            <ul>
+              <li><span class="mono">salida/&lt;producto&gt;/*.webp</span><span class="desc">solo las vistas aprobadas en <code>revision.json</code></span></li>
+              <li><span class="mono">Token de cada tienda (CL, MX, PE)</span><span class="desc">scopes: write_files, write_images, write_products, read_products, read_files</span></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Sale</h4>
+            <ul>
+              <li><span>Fichas con las vistas nuevas en el orden de <code>config.VISTAS</code> y las imágenes fijas al final</span></li>
+              <li><span class="mono">registro de publicación</span><span class="desc">tienda, producto, vista, archivo, id del archivo, fichas, estado y fecha</span></li>
+            </ul>
+          </div>
+        </div>
+        <h3>Cómo encuentra las fichas de una combinación</h3>
+        <p>Consulta las fichas activas y parsea cada título con esta expresión, que reconoce 673 de 673 títulos. Después compara modelo y color sin distinguir mayúsculas.</p>
+        <pre>^Apple iPhone (?P&lt;modelo&gt;.+?) (?:5G )?(?P&lt;cap&gt;\d+ ?(?:GB|TB)) (?P&lt;color&gt;.+?)\s*(?P&lt;cond&gt;Reacondicionado|Con Detalles|Open ?Box|Nuevo|Sellado)?$</pre>
+
+        <h3>Secuencia en la Admin API</h3>
+        <p class="muted">Operaciones validadas contra el schema de la tienda el 24 sep 2026.</p>
+        <ol class="pasos">
+          <li><div><strong>Destino de subida temporal</strong>
+<pre>mutation SubidaTemporal($input: [StagedUploadInput!]!) {
+  stagedUploadsCreate(input: $input) {
+    stagedTargets { url resourceUrl parameters { name value } }
+    userErrors { field message }
+  }
+}
+<span class="c"># $input = [{ resource: IMAGE, filename: "iPhone-16-Pro-Blanco-Version-Final-Trasera.webp",
+#             mimeType: "image/webp", httpMethod: POST }]
+# luego: POST multipart a `url` con cada `parameters` + el archivo</span></pre></div></li>
+          <li><div><strong>Crear el archivo</strong>
+<pre>mutation CrearArchivo($files: [FileCreateInput!]!) {
+  fileCreate(files: $files) {
+    files { id fileStatus alt }
+    userErrors { field message code }
+  }
+}
+<span class="c"># $files = [{ originalSource: &lt;resourceUrl&gt;, contentType: IMAGE, filename: "…webp",
+#             alt: "iPhone 16 Pro Blanco reacondicionado – vista trasera",
+#             duplicateResolutionMode: RAISE_ERROR }]</span></pre></div></li>
+          <li><div><strong>Esperar a que esté listo</strong>
+<pre>query EstadoArchivo($id: ID!) {
+  node(id: $id) { ... on MediaImage { fileStatus image { width height url } } }
+}
+<span class="c"># repetir hasta fileStatus = READY; FAILED es error</span></pre></div></li>
+          <li><div><strong>Asociar a las N fichas y desasociar las fotos antiguas</strong>
+<pre>mutation AsociarAFichas($files: [FileUpdateInput!]!) {
+  fileUpdate(files: $files) {
+    files { id fileStatus }
+    userErrors { field message code }
+  }
+}
+<span class="c"># nueva:   [{ id: "gid://shopify/MediaImage/…", referencesToAdd: [&lt;fichas de la combinación&gt;] }]
+# antigua: [{ id: &lt;foto antigua&gt;, referencesToRemove: [&lt;ficha&gt;] }]   (nunca las imágenes fijas)</span></pre></div></li>
+          <li><div><strong>Ordenar la galería</strong>
+<pre>mutation OrdenarGaleria($id: ID!, $moves: [MoveInput!]!) {
+  productReorderMedia(id: $id, moves: $moves) {
+    job { id done }
+    mediaUserErrors { field message code }
+  }
+}
+<span class="c"># $moves = [{ id: &lt;media&gt;, newPosition: "0" }, …]   base 0; se aplican en secuencia</span></pre></div></li>
+        </ol>
+        <div class="callout nota">
+          <strong>Reglas de publicación</strong>
+          <span>Primero <code>--simular</code>: lista por ficha qué entra, qué sale y el orden final. Después, una combinación con confirmación explícita, y recién entonces lotes. Cada tienda es una corrida aparte, con su token. Los nombres de archivo son estables y sin UUID. No asumir que <code>REPLACE</code> conserva las asociaciones sin probarlo.</span>
+        </div>
+        <p><strong>Se acepta cuando</strong> cada archivo existe una sola vez por tienda, todas las fichas de la combinación lo muestran en el orden definido, las imágenes fijas siguen ahí y volver a correrlo no sube ni cambia nada.</p>
+      </section>
+
+      <!-- CONFIGURACIÓN -->
+      <section id="configuracion">
+        <h2>Configuración</h2>
+        <p><code>config.toml</code> se lee sobre los defaults de <code>config.py</code>. Una clave desconocida o un valor fuera de rango es un error de configuración (código 2), con un mensaje por cada problema.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Sección</th><th>Claves y defaults</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap"><code>[lienzo]</code></td><td><code>ancho</code> 1000, <code>alto</code> 1000, <code>fondo</code> "#FFFFFF" o "transparente"</td></tr>
+              <tr><td class="nowrap"><code>[producto]</code></td><td><code>altura</code> 0,90 del alto del lienzo, <code>ancho_max</code> 0,90</td></tr>
+              <tr><td class="nowrap"><code>[portada]</code></td><td><code>solape</code> 0,1667, <code>desfase_vertical</code> 0, <code>adelante</code> "frontal", <code>lado_trasera</code> "izquierda", <code>frontal</code> "apagada"</td></tr>
+              <tr><td class="nowrap"><code>[pantalla]</code></td><td><code>variantes</code> ["apagada", "wallpaper"], <code>color_croma</code> "#00FF00", <code>tolerancia_tono</code> [18, 40], <code>wallpapers</code> "estilo/wallpapers", <code>ancla_wallpaper</code> "centro", <code>color_apagada</code> "#0B0B0F", <code>reflejo_apagada</code> 0,06</td></tr>
+              <tr><td class="nowrap"><code>[sombra]</code></td><td><code>activa</code> true, <code>opacidad</code> 0,24, <code>base</code> 0,024, <code>desplazamiento</code> 0,004, <code>desenfoque_x</code> 0,029, <code>desenfoque_y</code> 0,018 (fracciones del alto del producto, ajustadas a las referencias)</td></tr>
+              <tr><td class="nowrap"><code>[recorte]</code></td><td><code>umbral_alfa</code> 128, <code>objeto_min</code> 0,005, <code>rellenar_interior</code> true</td></tr>
+              <tr><td class="nowrap"><code>[quitar_fondo]</code></td><td><code>metodo</code> "auto", "alfa" o "rembg"; <code>modelo</code> "birefnet-general"; <code>limpiar_bordes</code> true</td></tr>
+              <tr><td class="nowrap"><code>[salida]</code></td><td><code>formato</code> "webp", <code>calidad</code> 90, <code>calidad_min</code> 60, <code>peso_max_kb</code> 50, <code>nombre</code> "{producto}-Version-Final-{vista}"</td></tr>
+              <tr><td class="nowrap"><code>[generar]</code></td><td><code>proveedor</code> "openai", <code>modelo</code> "gpt-image-2.5-sunburst", <code>calidad</code> "high", <code>medidas</code> "1024x1536", <code>candidatos</code> 1, <code>fondo</code> "transparente", <code>vistas</code> ["Lateral", "Frontal", "Trasera"], rutas de prompts, referencias y rasgos, <code>original_min</code> 800, precios por millón de tokens</td></tr>
+              <tr><td class="nowrap"><code>[alertas]</code></td><td><code>ampliacion_max</code> 1,10, <code>margen_borde</code> 2, <code>diferencia_proporcion</code> 0,03</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ALERTAS -->
+      <section id="alertas">
+        <h2>Alertas</h2>
+        <p>No detienen el proceso: aparecen en la consola con <span class="t-warn">⚠</span> y quedan en <code>reporte.json</code>. Los errores, en cambio, se marcan con <span class="t-err">✗</span>: esa imagen no se guarda y el comando termina con código 1.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Código</th><th>Dónde</th><th>Significa</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap"><code>ORIGINAL_CHICO</code></td><td>Generar</td><td>En el original, el equipo ocupa menos de 800 px: la IA tiene poco detalle para ser fiel</td></tr>
+              <tr><td class="nowrap"><code>AMPLIACION</code></td><td>Todas</td><td>Hay que ampliar el producto más de 1,10×: puede verse borroso</td></tr>
+              <tr><td class="nowrap"><code>TOCA_BORDE</code></td><td>Todas</td><td>El producto toca el borde de la imagen de entrada: puede estar cortado</td></tr>
+              <tr><td class="nowrap"><code>VARIOS_OBJETOS</code></td><td>Todas</td><td>Hay más de un objeto en la imagen</td></tr>
+              <tr><td class="nowrap"><code>HUECOS_RELLENADOS</code></td><td>Todas</td><td>El recorte tenía huecos dentro del producto y se rellenaron con el original: revisar el recorte</td></tr>
+              <tr><td class="nowrap"><code>LIMITADO_POR_ANCHO</code></td><td>Todas</td><td>El producto no cabe a lo ancho a la altura estándar y quedó más bajo</td></tr>
+              <tr><td class="nowrap"><code>DESBORDA_LIENZO</code></td><td>Todas</td><td>Parte del recorte (halo o sombra) quedó fuera del lienzo</td></tr>
+              <tr><td class="nowrap"><code>PESO_EXCEDIDO</code></td><td>Todas</td><td>Ni con calidad 60 se llega a 50 KB</td></tr>
+              <tr><td class="nowrap"><code>SIN_PANTALLA_CROMA</code></td><td>Frontal</td><td>Se pidió la Frontal con wallpaper, pero la Frontal no trae croma: se usó tal cual y la Frontal-Wallpaper no se armó. Regenerar la Frontal</td></tr>
+              <tr><td class="nowrap"><code>PANTALLA_CON_ELEMENTOS</code></td><td>Frontal</td><td>La IA dibujó hora, íconos o texto sobre la pantalla croma (la Dynamic Island no cuenta). Regenerar la Frontal</td></tr>
+              <tr><td class="nowrap"><code>PROPORCIONES_DISTINTAS</code></td><td>Portada</td><td>La Frontal y la Trasera difieren más de 3 % en su proporción ancho/alto: una de las dos puede estar deformada</td></tr>
+              <tr><td class="nowrap"><code>PORTADA_CON_OTRA_FRONTAL</code></td><td>Portada</td><td>No estaba la variante de <code>portada.frontal</code> y la Portada se armó con la otra</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PROVEEDORES -->
+      <section id="proveedores">
+        <h2>Proveedores de IA</h2>
+        <div class="callout crit">
+          <strong>No construir sobre modelos que se apagan</strong>
+          <span><code>gpt-image-1</code> se apaga el 23 oct 2026; <code>gpt-image-1.5</code>, <code>gpt-image-1-mini</code> y <code>chatgpt-image-latest</code>, el 1 dic 2026; <code>gemini-2.5-flash-image</code>, el 2 oct 2026.</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Criterio</th><th>OpenAI · gpt-image-2.5 (en uso)</th><th>Google · Gemini (sin implementar)</th></tr></thead>
+            <tbody>
+              <tr><td>Modelos</td><td><code>gpt-image-2.5-sunburst</code> (ediciones precisas; el del config) y <code>-flare</code> (general). Salieron el 8 sep 2026</td><td><code>gemini-3.1-flash-image</code> ("Nano Banana 2") y <code>gemini-3-pro-image</code> ("Nano Banana Pro")</td></tr>
+              <tr><td>Fondo transparente</td><td>Nativo</td><td>No documentado: se pide blanco liso y el pipeline quita el fondo con rembg</td></tr>
+              <tr><td>Imágenes de entrada</td><td>Hasta 16 por llamada</td><td>Hasta 14</td></tr>
+              <tr><td>Tamaños</td><td>Libres en múltiplos de 16; lado mayor hasta 3840 px (sobre 2560 × 1440, experimental)</td><td>0.5K a 4K en Flash; 1K a 4K en Pro</td></tr>
+              <tr><td>Costo por vista</td><td>US$0,061–0,062 medido, en high a 1024 × 1536</td><td>Flash 2K US$0,101 · Pro 2K US$0,134; Batch a mitad de precio</td></tr>
+              <tr><td>Catálogo completo (549 vistas)</td><td class="nowrap">~US$34</td><td class="nowrap">~US$55 Flash · ~US$74 Pro</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Con cualquiera de los dos, el catálogo completo cuesta menos de US$75. Lo que decide es la fidelidad en cámaras, color y logo, y que el proveedor respete la pantalla croma.</p>
+      </section>
+
+      <!-- CANALES -->
+      <section id="canales">
+        <h2>Requisitos de imagen por canal</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Canal</th><th>Tamaño</th><th>Producto ocupa</th><th>Fondo</th><th>Formato / peso</th><th>Imagen principal</th></tr></thead>
+            <tbody>
+              <tr><td>Shopify</td><td>Hasta 5000 px; 2048² recomendado</td><td>—</td><td>—</td><td>&lt;20 MB</td><td>Misma relación de aspecto en todas</td></tr>
+              <tr><td>Mercado Libre</td><td>Mín. 500 px; 1200² recomendado</td><td>95 %, sin márgenes</td><td>Blanco puro</td><td>JPG/PNG ≤10 MB</td><td>—</td></tr>
+              <tr><td>Amazon</td><td>Mín. 500 px; 1000+ para zoom</td><td>85 %</td><td>RGB 255,255,255</td><td>JPEG recomendado</td><td><strong>Producto una sola vez: nunca frente + trasera</strong></td></tr>
+              <tr><td>Falabella</td><td>1500² óptimo</td><td>~94 %</td><td>Blanco</td><td>Solo JPG</td><td>Spec de Colombia; la de Chile requiere login</td></tr>
+              <tr><td>Walmart México</td><td>1000², máx. 3000²</td><td>~90 %</td><td>Blanco</td><td>JPG/PNG ≤1 MB</td><td><strong>Debe ser una frontal</strong></td></tr>
+              <tr><td>Liverpool</td><td colspan="5">Sin spec pública: el portal de vendedores pide login.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Hoy el pipeline produce un solo formato, el de la ficha de Shopify: 1000 × 1000 WebP de máx. 50 KB, con el producto al 90 % del alto. Para los marketplaces habría que exportar un perfil por canal desde los maestros, y la Portada no puede abrir la galería en Amazon ni en Walmart.</p>
+      </section>
+
+      <!-- DECISIONES -->
+      <section id="decisiones">
+        <h2>Decisiones abiertas</h2>
+        <ol>
+          <li><strong>Wallpapers:</strong> cuáles usar (uno general o uno por modelo) y con qué derechos de uso. Hasta que haya uno en <code>estilo/wallpapers/</code>, no sale la Frontal-Wallpaper.</li>
+          <li><strong>Regenerar las Frontales existentes</strong> con pantalla croma: ~US$0,06 por producto.</li>
+          <li><strong>Solape definitivo:</strong> el default es 0,1667. En la hoja con 0,2–0,5, hasta 0,3 no se tapa el logo.</li>
+          <li><strong>Portada con la Frontal apagada o con wallpaper</strong> (<code>portada.frontal</code>).</li>
+          <li><strong>Diseño de Revisar y Publicar</strong> (etapas 3 y 4).</li>
+          <li><strong>Perfiles para marketplaces</strong>, y si Multivende toma un solo set o uno por canal.</li>
+          <li><strong>Lienzo de Shopify:</strong> mantener 1000 × 1000 o pasar a 2048 × 2048 para el zoom. Implica generar a mayor resolución.</li>
+        </ol>
+      </section>
+
+      <!-- RIESGOS -->
+      <section id="riesgos">
+        <h2>Riesgos</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Riesgo</th><th>Mitigación</th></tr></thead>
+            <tbody>
+              <tr><td>La IA altera el equipo (cámaras, botones, color, logo)</td><td>Revisión humana (etapa 3); el original como fuente de verdad en el prompt; <code>rasgos.toml</code></td></tr>
+              <tr><td>La IA no respeta la pantalla croma (hora, íconos, degradado)</td><td>Alertas <code>SIN_PANTALLA_CROMA</code> y <code>PANTALLA_CON_ELEMENTOS</code>; subir <code>tolerancia_tono</code>; regenerar solo la Frontal</td></tr>
+              <tr><td>El modelo se depreca a mitad de proyecto</td><td>Modelo fijo en <code>config.toml</code>; revisar la página de deprecaciones de OpenAI</td></tr>
+              <tr><td>Escritura masiva errónea en Shopify</td><td>Simular, confirmar, una combinación primero, imágenes fijas protegidas</td></tr>
+              <tr><td>Pillow 13 (15 oct 2026) quita el parámetro <code>mode</code> de <code>Image.fromarray</code></td><td>El código ya no lo usa; las pruebas corren con <code>-W error::DeprecationWarning</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- FUENTES -->
+      <section id="fuentes">
+        <h2>Fuentes</h2>
+        <ul>
+          <li><a href="https://openai.com/index/introducing-chatgpt-images-2-5/">OpenAI · ChatGPT Images 2.5</a></li>
+          <li><a href="https://developers.openai.com/api/docs/guides/image-generation">OpenAI · Guía de generación de imágenes</a></li>
+          <li><a href="https://developers.openai.com/api/docs/deprecations">OpenAI · Deprecaciones</a></li>
+          <li><a href="https://ai.google.dev/gemini-api/docs/image-generation">Google · Generación de imágenes con Gemini</a></li>
+          <li><a href="https://ai.google.dev/gemini-api/docs/pricing">Google · Precios de Gemini</a></li>
+          <li><a href="https://sellercentral.amazon.com.mx/help/hub/reference/external/G1881">Amazon México · Requisitos de imágenes</a></li>
+          <li><a href="https://www.mercadolibre.cl/ayuda/805">Mercado Libre · Fotos</a></li>
+          <li><a href="https://ayudaseller.falabella.com.co/s/article/Requisitos-de-las-imagenes">Falabella · Requisitos de imágenes (Colombia)</a></li>
+          <li><a href="https://marketplacelearn.walmart.com/mx/guides/Gesti%C3%B3n%20de%20Cat%C3%A1logo/Carga%20de%20art%C3%ADculos/lineamientos-de-las-im-genes">Walmart México · Lineamientos de imágenes</a></li>
+          <li><a href="https://help.shopify.com/en/manual/products/product-media/product-media-types">Shopify · Tipos de media de producto</a></li>
+          <li><a href="https://github.com/danielgatis/rembg">rembg</a></li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <span>Pipeline de fotos iPhone · versión 3 · 25 sep 2026. Describe el proyecto <code>imagenes-producto</code>, con la Frontal con y sin wallpaper y la Portada con solape configurable.</span>
+    <span>El brief para seguir el proyecto con otra IA está en <code>docs/referencia.md</code>. Datos de catálogo: Shopify Reuse Chile. Specs de proveedores y marketplaces verificadas el 24 sep 2026; revisarlas si pasan más de 3 meses.</span>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var enlaces = Array.prototype.slice.call(document.querySelectorAll('.toc a[href^="#"]'));
+    if (!('IntersectionObserver' in window) || !enlaces.length) return;
+    var porId = {};
+    enlaces.forEach(function (a) { porId[a.getAttribute('href').slice(1)] = a; });
+    var visibles = new Set();
+    var io = new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (e) { if (e.isIntersecting) visibles.add(e.target.id); else visibles.delete(e.target.id); });
+      var primero = null;
+      document.querySelectorAll('main > section').forEach(function (s) { if (!primero && visibles.has(s.id)) primero = s.id; });
+      enlaces.forEach(function (a) { a.classList.toggle('activo', a === porId[primero]); });
+    }, { rootMargin: '-10% 0px -70% 0px' });
+    document.querySelectorAll('main > section[id]').forEach(function (s) { io.observe(s); });
+  })();
+</script>

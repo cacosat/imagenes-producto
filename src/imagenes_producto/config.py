@@ -6,6 +6,7 @@ Las secciones y claves del TOML se llaman igual que las clases y campos de este 
 
 from __future__ import annotations
 
+import colorsys
 import re
 import tomllib
 from dataclasses import dataclass, field, fields
@@ -16,10 +17,16 @@ from PIL import ImageColor
 TRANSPARENTE = "transparente"
 FORMATOS = ("png", "jpg", "webp")
 METODOS_FONDO = ("auto", "alfa", "rembg")
-# Vistas de la galería, en el orden en que se muestran. La Portada se compone con la Trasera y la Frontal.
-VISTAS = ("portada", "lateral", "frontal", "trasera")
+# Vistas de la galería, en el orden en que se muestran. La Portada se compone con la Trasera y la Frontal;
+# la Frontal-Wallpaper sale de la Frontal cuando `pantalla.variantes` la pide.
+VISTAS = ("Portada", "Lateral", "Frontal", "Frontal-Wallpaper", "Trasera")
 # Vistas que genera la IA: la Portada nunca, porque se compone.
 VISTAS_GENERADAS = ("Lateral", "Frontal", "Trasera")
+# Variantes de pantalla de la Frontal y la vista de galería de cada una.
+VISTA_DE_VARIANTE = {"apagada": "Frontal", "wallpaper": "Frontal-Wallpaper"}
+ANCLAS_WALLPAPER = ("centro", "arriba")
+LADOS = ("izquierda", "derecha")
+ADELANTE = ("frontal", "trasera")
 CALIDADES_IA = ("low", "medium", "high", "xhigh", "max", "auto")
 FONDOS_IA = ("transparente", "blanco")
 PROVEEDORES = ("openai",)
@@ -51,7 +58,35 @@ class Producto:
 
 @dataclass(frozen=True)
 class Portada:
-    visible_trasera: float = 5 / 6
+    """Composición de la Portada con la Trasera y la Frontal, del mismo alto.
+
+    `solape` es la fracción del ancho del teléfono de adelante que tapa al de atrás: 0 = se tocan; 1/6 deja
+    ver 5/6 de la trasera, como la referencia de estilo; negativo = separados.
+    """
+
+    solape: float = 1 / 6
+    desfase_vertical: float = 0.0  # fracción del alto; positivo = la frontal más abajo que la trasera
+    adelante: str = "frontal"
+    lado_trasera: str = "izquierda"
+    frontal: str = "apagada"  # variante de la Frontal que va en la Portada
+
+
+@dataclass(frozen=True)
+class Pantalla:
+    """Pantalla de la Frontal.
+
+    Con "wallpaper" en `variantes`, la IA genera la Frontal con la pantalla en `color_croma` y de esa única
+    imagen salen las variantes: "apagada" (vista Frontal) y "wallpaper" (vista Frontal-Wallpaper), con la
+    misma geometría. Sin "wallpaper", la IA la genera apagada y se usa tal cual.
+    """
+
+    variantes: tuple[str, ...] = ("apagada", "wallpaper")
+    color_croma: str = "#00FF00"
+    tolerancia_tono: tuple[float, float] = (18, 40)  # grados: hasta el primero es croma; desde el segundo, no
+    wallpapers: str = "estilo/wallpapers"  # carpeta (<producto>, <modelo> o _default) o un archivo para todos
+    ancla_wallpaper: str = "centro"
+    color_apagada: str = "#0B0B0F"
+    reflejo_apagada: float = 0.06
 
 
 @dataclass(frozen=True)
@@ -124,6 +159,7 @@ class Config:
     lienzo: Lienzo = field(default_factory=Lienzo)
     producto: Producto = field(default_factory=Producto)
     portada: Portada = field(default_factory=Portada)
+    pantalla: Pantalla = field(default_factory=Pantalla)
     sombra: Sombra = field(default_factory=Sombra)
     recorte: Recorte = field(default_factory=Recorte)
     quitar_fondo: QuitarFondo = field(default_factory=QuitarFondo)
@@ -146,6 +182,13 @@ def cargar_config(ruta: Path | None) -> Config:
     desconocidas = set(datos) - set(secciones)
     if desconocidas:
         raise ErrorConfig(f"{ruta}: sección desconocida [{', '.join(sorted(desconocidas))}]")
+
+    if "visible_trasera" in datos.get("portada", {}):
+        raise ErrorConfig(
+            f"{ruta}: portada.visible_trasera se reemplazó por portada.solape, la fracción del ancho de la "
+            "frontal que tapa a la trasera. Con las dos del mismo ancho, solape = 1 − visible_trasera "
+            "(5/6 → solape = 0.1667)"
+        )
 
     valores = {}
     for nombre, clase in secciones.items():
@@ -183,7 +226,31 @@ def _validar(c: Config) -> None:
            'lienzo.fondo debe ser un color hex (p. ej. "#FFFFFF") o "transparente"')
     exigir(fraccion(c.producto.altura), "producto.altura debe ser un número entre 0 y 1")
     exigir(fraccion(c.producto.ancho_max), "producto.ancho_max debe ser un número entre 0 y 1")
-    exigir(fraccion(c.portada.visible_trasera), "portada.visible_trasera debe ser un número entre 0 y 1")
+    p = c.portada
+    exigir(numero(p.solape) and -0.5 <= p.solape <= 0.95,
+           "portada.solape debe ser un número entre -0.5 (separados) y 0.95")
+    exigir(numero(p.desfase_vertical) and -0.5 <= p.desfase_vertical <= 0.5,
+           "portada.desfase_vertical debe ser un número entre -0.5 y 0.5")
+    exigir(p.adelante in ADELANTE, f"portada.adelante debe ser uno de: {', '.join(ADELANTE)}")
+    exigir(p.lado_trasera in LADOS, f"portada.lado_trasera debe ser uno de: {', '.join(LADOS)}")
+    exigir(p.frontal in c.pantalla.variantes,
+           f"portada.frontal debe ser una de las variantes de pantalla.variantes ({', '.join(c.pantalla.variantes)})")
+
+    s = c.pantalla
+    exigir(isinstance(s.variantes, tuple) and len(s.variantes) > 0 and len(set(s.variantes)) == len(s.variantes)
+           and all(v in VISTA_DE_VARIANTE for v in s.variantes),
+           f"pantalla.variantes debe ser una lista sin repetir con algunas de: {', '.join(VISTA_DE_VARIANTE)}")
+    exigir(_es_color(s.color_croma) and _saturado(s.color_croma),
+           'pantalla.color_croma debe ser un color hex bien saturado, p. ej. "#00FF00"')
+    exigir(isinstance(s.tolerancia_tono, tuple) and len(s.tolerancia_tono) == 2 and all(map(numero, s.tolerancia_tono))
+           and 0 <= s.tolerancia_tono[0] < s.tolerancia_tono[1] <= 90,
+           "pantalla.tolerancia_tono debe ser [mínimo, máximo] en grados, con 0 ≤ mínimo < máximo ≤ 90")
+    exigir(isinstance(s.wallpapers, str) and s.wallpapers != "", "pantalla.wallpapers debe ser una ruta")
+    exigir(s.ancla_wallpaper in ANCLAS_WALLPAPER,
+           f"pantalla.ancla_wallpaper debe ser uno de: {', '.join(ANCLAS_WALLPAPER)}")
+    exigir(_es_color(s.color_apagada), 'pantalla.color_apagada debe ser un color hex, p. ej. "#0B0B0F"')
+    exigir(numero(s.reflejo_apagada) and 0 <= s.reflejo_apagada <= 1,
+           "pantalla.reflejo_apagada debe ser un número entre 0 y 1")
     exigir(isinstance(c.sombra.activa, bool), "sombra.activa debe ser true o false")
     exigir(numero(c.sombra.opacidad) and 0 <= c.sombra.opacidad <= 1, "sombra.opacidad debe ser un número entre 0 y 1")
     exigir(fraccion(c.sombra.base), "sombra.base debe ser un número entre 0 y 1")
@@ -242,6 +309,13 @@ def _es_color(valor) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _saturado(color: str) -> bool:
+    """Un color croma tiene que distinguirse del marco, del fondo y de la pantalla negra."""
+    r, g, b = (v / 255 for v in ImageColor.getrgb(color)[:3])
+    _, saturacion, brillo = colorsys.rgb_to_hsv(r, g, b)
+    return saturacion >= 0.6 and brillo >= 0.5
 
 
 def _plantilla_valida(plantilla) -> bool:

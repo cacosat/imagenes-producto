@@ -11,8 +11,27 @@ fondo = "#FFFFFF"             # color hex, o "transparente" (solo con png o webp
 altura = 0.90                 # fracción del alto del lienzo que ocupa el producto (900 px de 1000); la misma en todas las vistas y modelos
 ancho_max = 0.90              # fracción máxima del ancho; si el producto no cabe, se achica y se alerta
 
-[portada]
-visible_trasera = 0.8333      # de la trasera (atrás, a la izquierda) se ve esta fracción del ancho de la frontal: 5/6
+[portada]                     # se compone con la Trasera y la Frontal, del mismo alto; no la genera la IA
+solape = 0.1667               # fracción del ancho del teléfono de adelante que tapa al de atrás: 0 = se tocan,
+                              # 0.1667 = de la trasera se ve 5/6, como la referencia; negativo = separados (de -0.5 a 0.95).
+                              # Para elegir: imgprod portada --solape 0,0.1667,0.3 ; para aplicar: imgprod portada
+desfase_vertical = 0.0        # fracción del alto: positivo baja la frontal respecto de la trasera; 0 = alineadas
+adelante = "frontal"          # cuál queda encima: "frontal" o "trasera"
+lado_trasera = "izquierda"    # "izquierda" o "derecha"
+frontal = "apagada"           # qué Frontal va en la Portada: "apagada" o "wallpaper" (debe estar en pantalla.variantes)
+
+[pantalla]                    # pantalla de la Frontal
+variantes = ["apagada", "wallpaper"]   # qué Frontales salen: "apagada" → …-Frontal, "wallpaper" → …-Frontal-Wallpaper.
+                              # Con "wallpaper", la IA genera la Frontal con la pantalla en color_croma y de esa única
+                              # imagen salen las dos, con la misma geometría. Solo ["apagada"]: la IA la genera apagada.
+color_croma = "#00FF00"       # color plano que la IA pone en la pantalla y el script reemplaza
+tolerancia_tono = [18, 40]    # grados de tono: hasta el primero es croma, desde el segundo no (súbelos si la IA
+                              # entrega un verde menos puro)
+wallpapers = "estilo/wallpapers"   # carpeta: se busca <producto>.jpg, luego <modelo>.jpg y luego _default.jpg
+                              # (también png o webp); o un archivo, para usar el mismo en todos
+ancla_wallpaper = "centro"    # si el wallpaper no calza con la pantalla, qué parte se conserva: "centro" o "arriba"
+color_apagada = "#0B0B0F"     # pantalla apagada que se arma desde el croma
+reflejo_apagada = 0.06        # reflejo diagonal de la pantalla apagada: 0 = negro plano
 
 [sombra]                      # sombra de contacto bajo el producto; medidas en fracción del alto del producto
 activa = true                 # ajustada a las referencias de estilo (estilo/referencias/)
